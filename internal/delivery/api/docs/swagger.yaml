@@ -1,0 +1,581 @@
+basePath: /api
+definitions:
+  apierr.Response:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+    type: object
+  models.Account:
+    properties:
+      balance:
+        type: number
+      created_at:
+        type: string
+      id:
+        type: string
+      is_default:
+        type: boolean
+      name:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.AuthRequest:
+    properties:
+      currency_code:
+        type: string
+      first_name:
+        type: string
+      language_code:
+        type: string
+      last_name:
+        type: string
+      tg_user_id:
+        type: integer
+      username:
+        type: string
+    required:
+    - tg_user_id
+    type: object
+  models.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.Category:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      position:
+        type: integer
+      slug:
+        type: string
+    type: object
+  models.CreateAccountRequest:
+    properties:
+      balance:
+        type: number
+      is_default:
+        type: boolean
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  models.CreateTransactionRequest:
+    properties:
+      account_id:
+        type: string
+      amount:
+        type: number
+      category_id:
+        type: integer
+      currency_code:
+        type: string
+      note:
+        type: string
+      performed_at:
+        type: string
+      type:
+        type: string
+    required:
+    - account_id
+    - amount
+    - type
+    type: object
+  models.PaginationResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  models.ParseTransactionRequest:
+    properties:
+      content:
+        type: string
+    required:
+    - content
+    type: object
+  models.Transaction:
+    properties:
+      account_id:
+        type: string
+      amount:
+        type: number
+      category_id:
+        type: integer
+      created_at:
+        type: string
+      currency_code:
+        type: string
+      fx_rate:
+        type: number
+      id:
+        type: string
+      note:
+        type: string
+      original_amount:
+        type: number
+      original_currency_code:
+        type: string
+      performed_at:
+        type: string
+      rejected_at:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.TransactionsResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.Transaction'
+        type: array
+      pagination:
+        $ref: '#/definitions/models.PaginationResponse'
+    type: object
+  models.UpdateAccountRequest:
+    properties:
+      is_default:
+        type: boolean
+      name:
+        type: string
+    type: object
+  models.UpdateUserRequest:
+    properties:
+      currency_code:
+        type: string
+      language_code:
+        type: string
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      currency_code:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      language_code:
+        type: string
+      last_name:
+        type: string
+      tg_user_id:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  parser.ParseTextView:
+    properties:
+      amount:
+        type: number
+      category_id:
+        type: integer
+      confidence:
+        type: number
+      note:
+        type: string
+      performed_at:
+        type: string
+      type:
+        type: string
+    type: object
+  query.CategoryStat:
+    properties:
+      categoryID:
+        type: integer
+      total:
+        type: number
+    type: object
+  query.GetStatsView:
+    properties:
+      balance:
+        type: number
+      byCategory:
+        items:
+          $ref: '#/definitions/query.CategoryStat'
+        type: array
+      totalExpense:
+        type: number
+      totalIncome:
+        type: number
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Autocollection Backend API Documentation
+  title: Autocollection Backend Docs
+  version: 0.0.1
+paths:
+  /accounts:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Account'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Lists accounts for the authenticated user
+      tags:
+      - Accounts
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Creates a new account
+      tags:
+      - Accounts
+  /accounts/{id}:
+    delete:
+      parameters:
+      - description: account id
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Deletes an account
+      tags:
+      - Accounts
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: account id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Updates account information
+      tags:
+      - Accounts
+  /auth/telegram:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user session using Telegram payload and returns JWT
+        token
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      summary: Authenticates user through telegram
+      tags:
+      - Auth
+  /categories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Category'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Lists available categories
+      tags:
+      - Categories
+  /parse/text:
+    post:
+      consumes:
+      - application/json
+      description: Parse text
+      parameters:
+      - description: Parse transaction request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ParseTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/parser.ParseTextView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Parse text
+      tags:
+      - Parse
+  /stats/summary:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/query.GetStatsView'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns aggregated statistics
+      tags:
+      - Stats
+  /transactions:
+    get:
+      parameters:
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      - description: offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TransactionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Lists transactions with pagination
+      tags:
+      - Transactions
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Transaction'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Creates a new transaction
+      tags:
+      - Transactions
+  /transactions/{id}:
+    get:
+      parameters:
+      - description: transaction id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Transaction'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns transaction by ID
+      tags:
+      - Transactions
+  /users/me:
+    get:
+      description: Provides profile of the user extracted from JWT claims
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns profile for the authenticated user
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Updates language/currency preferences for the user
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Updates profile for the authenticated user
+      tags:
+      - Users
+securityDefinitions:
+  BasicAuth:
+    type: basic
+  BearerAuth:
+    description: API Токен используется для авторизации
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

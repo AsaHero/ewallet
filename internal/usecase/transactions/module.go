@@ -1,0 +1,54 @@
+package transactions
+
+import (
+	"time"
+
+	"github.com/AsaHero/e-wallet/internal/entities"
+	"github.com/AsaHero/e-wallet/internal/usecase/transactions/command"
+	"github.com/AsaHero/e-wallet/internal/usecase/transactions/query"
+
+	"github.com/AsaHero/e-wallet/pkg/logger"
+)
+
+type Commands struct {
+	*command.CreateTransactionUsecase
+}
+
+type Query struct {
+	*query.GetByIDUsecase
+	*query.GetByFilterUsecase
+	*query.GetStatsUsecase
+}
+
+type Module struct {
+	Command Commands
+	Query   Query
+}
+
+func NewModule(
+	timeout time.Duration,
+	logger *logger.Logger,
+	usersRepo entities.UserRepository,
+	accountsRepo entities.AccountRepository,
+	transactionsRepo entities.TransactionRepository,
+	categortiesRepo entities.CategoryRepository,
+) *Module {
+	m := &Module{
+		Command: Commands{
+			CreateTransactionUsecase: command.NewCreateTransactionUsecase(
+				timeout,
+				logger,
+				usersRepo,
+				accountsRepo,
+				transactionsRepo,
+				categortiesRepo,
+			),
+		},
+		Query: Query{
+			GetByIDUsecase:     query.NewGetByIDUsecase(timeout, logger, transactionsRepo),
+			GetByFilterUsecase: query.NewGetByFilterUsecase(timeout, logger, transactionsRepo),
+		},
+	}
+
+	return m
+}
