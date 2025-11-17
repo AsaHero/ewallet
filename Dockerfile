@@ -19,14 +19,14 @@ RUN make build-linux
 FROM alpine:latest
 
 # Copy the executable from the builder stage
-COPY --from=builder /app/bin/golang-ddd-clean-template ./golang-ddd-clean-template
+COPY --from=builder /app/bin/ewallet ./ewallet
 
 
 # Grant execution permissions to the executable
-RUN chmod +x ./golang-ddd-clean-template
+RUN chmod +x ./ewallet
 
 # Expose port 8081
 EXPOSE 8081
 
 # Command to run the executable
-CMD ["./golang-ddd-clean-template"]
+CMD ["./ewallet"]
