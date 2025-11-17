@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/AsaHero/e-wallet/internal/delivery/api/apierr"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/middleware"
@@ -10,7 +9,6 @@ import (
 	"github.com/AsaHero/e-wallet/internal/entities"
 	"github.com/AsaHero/e-wallet/internal/usecase/accounts/command"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/shogo82148/pointer"
 )
 
@@ -23,26 +21,34 @@ import (
 // @Failure      401 {object} apierr.Response
 // @Router       /accounts [get]
 func (h *Handlers) GetAccounts(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
 		return
 	}
 
-	now := time.Now()
-	accounts := []models.Account{
-		{
-			ID:        uuid.NewString(),
-			UserID:    userID,
-			Name:      "Default wallet",
-			Balance:   125000,
-			IsDefault: true,
-			CreatedAt: now.Add(-48 * time.Hour),
-			UpdatedAt: &now,
-		},
+	accounts, err := h.AccountsUsecase.Query.GetAccountsByUserID(ctx, userID)
+	if err != nil {
+		apierr.Handle(c, err)
+		return
 	}
 
-	c.JSON(http.StatusOK, accounts)
+	var response []models.Account
+	for _, account := range accounts {
+		response = append(response, models.Account{
+			ID:        account.ID.String(),
+			UserID:    account.UserID.String(),
+			Name:      account.Name,
+			Balance:   account.AmountMajor(entities.UZS),
+			IsDefault: account.IsDefault,
+			CreatedAt: account.CreatedAt,
+			UpdatedAt: pointer.TimeOrNil(account.UpdatedAt),
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // CreateAccount godoc
@@ -57,6 +63,8 @@ func (h *Handlers) GetAccounts(c *gin.Context) {
 // @Failure      401 {object} apierr.Response
 // @Router       /accounts [post]
 func (h *Handlers) CreateAccount(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -69,7 +77,7 @@ func (h *Handlers) CreateAccount(c *gin.Context) {
 		return
 	}
 
-	account, err := h.AccountsUsecase.Command.CreateAccount(c, &command.CreateAccountCommand{
+	account, err := h.AccountsUsecase.Command.CreateAccount(ctx, &command.CreateAccountCommand{
 		UserID:    userID,
 		Name:      req.Name,
 		Balance:   req.Balance,
@@ -106,6 +114,8 @@ func (h *Handlers) CreateAccount(c *gin.Context) {
 // @Failure      401 {object} apierr.Response
 // @Router       /accounts/{id} [patch]
 func (h *Handlers) UpdateAccount(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -124,7 +134,7 @@ func (h *Handlers) UpdateAccount(c *gin.Context) {
 		return
 	}
 
-	account, err := h.AccountsUsecase.Command.UpdateAccount(c, &command.UpdateAccounCommand{
+	account, err := h.AccountsUsecase.Command.UpdateAccount(ctx, &command.UpdateAccounCommand{
 		UserID:    userID,
 		AccountID: accountID,
 		Name:      req.Name,
@@ -157,6 +167,8 @@ func (h *Handlers) UpdateAccount(c *gin.Context) {
 // @Failure      401 {object} apierr.Response
 // @Router       /accounts/{id} [delete]
 func (h *Handlers) DeleteAccount(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -169,7 +181,7 @@ func (h *Handlers) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	err := h.AccountsUsecase.Command.DeleteAccount(c, &command.DeleteAccountCommand{
+	err := h.AccountsUsecase.Command.DeleteAccount(ctx, &command.DeleteAccountCommand{
 		UserID:    userID,
 		AccountID: accountID,
 	})

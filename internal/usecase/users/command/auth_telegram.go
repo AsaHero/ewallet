@@ -2,9 +2,11 @@ package command
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/AsaHero/e-wallet/internal/entities"
+	"github.com/AsaHero/e-wallet/internal/inerr"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
 	"go.opentelemetry.io/otel"
@@ -47,7 +49,7 @@ func (u *AuthTelegramUsecase) AuthTelegram(ctx context.Context, cmd *AuthTelegra
 	defer func() { end(err) }()
 
 	user, err := u.usersRepo.FindByTGUserID(ctx, cmd.TelegramUserID)
-	if err == nil {
+	if err != nil && !errors.Is(err, inerr.ErrNotFound{}) {
 		u.logger.ErrorContext(ctx, "failed to find by tg user id", err)
 		return nil, err
 	}

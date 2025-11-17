@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS transactions(
     currency_code char(3) NOT NULL,
     original_amount bigint,
     original_currency_code char(3),
-    fx_rate numeric(18, 6) precision,
+    fx_rate numeric(18, 6),
     row_text text,
     performed_at timestamp with time zone,
     rejected_at timestamp with time zone,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS transactions(
     PRIMARY KEY (id),
     CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES category(id) ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS transactions_user_id_idx ON transactions(user_id);

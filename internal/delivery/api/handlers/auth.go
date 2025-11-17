@@ -23,15 +23,15 @@ import (
 // @Failure      500 {object} apierr.Response
 // @Router       /auth/telegram [post]
 func (h *Handlers) AuthTelegram(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	var req models.AuthRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apierr.BadRequest(c, "invalid request payload", err.Error())
 		return
 	}
 
-	req.CurrencyCode = ""
-
-	user, err := h.UsersUsecase.Command.AuthTelegram(c, &command.AuthTelegramCommand{
+	user, err := h.UsersUsecase.Command.AuthTelegram(ctx, &command.AuthTelegramCommand{
 		TelegramUserID: req.TgUserID,
 		FirstName:      req.FirstName,
 		LastName:       req.LastName,

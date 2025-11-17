@@ -32,8 +32,10 @@ func NewModule(
 	m := &Module{
 		Command: Commands{
 			AuthTelegramUsecase: command.NewAuthTelegramUsecase(timeout, logger, usersRepo),
+			UpdateUsecase:       command.NewUpdateUsecase(timeout, logger, usersRepo),
 		},
 		Query: Query{
+			GetByIDUsecase:       query.NewGetByUserIDUsecase(timeout, logger, usersRepo),
 			GetByTGUserIDUsecase: query.NewGetByTGUserIDUsecase(timeout, logger, usersRepo),
 		},
 	}

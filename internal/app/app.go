@@ -71,6 +71,8 @@ func New(cfg *config.Config) (*App, error) {
 }
 
 func (a *App) Run() error {
+	txManager := postgres.NewTxManager(a.db)
+
 	// init provider
 	openaiProvider, err := openai.New(a.config)
 	if err != nil {
@@ -88,7 +90,7 @@ func (a *App) Run() error {
 	// init usecases
 	usersUsecase := users.NewModule(a.config.Context.Timeout, a.logger, usersRepo)
 	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo)
-	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo, transactionsRepo, categoriesDict)
+	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, transactionsRepo, categoriesDict)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict)
 	parserUsecase := parser.NewModule(a.config.Context.Timeout, a.logger, openaiProvider)
 

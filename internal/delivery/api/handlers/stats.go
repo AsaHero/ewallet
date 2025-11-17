@@ -18,6 +18,8 @@ import (
 // @Failure      401 {object} apierr.Response
 // @Router       /stats/summary [get]
 func (h *Handlers) GetStats(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -25,7 +27,7 @@ func (h *Handlers) GetStats(c *gin.Context) {
 	}
 
 	var response *query.GetStatsView
-	response, err := h.TransactionsUsecase.Query.GetStats(c, userID)
+	response, err := h.TransactionsUsecase.Query.GetStats(ctx, userID)
 	if err != nil {
 		apierr.Handle(c, err)
 		return

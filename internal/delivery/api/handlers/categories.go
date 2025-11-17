@@ -18,12 +18,14 @@ import (
 // @Failure      401 {object} apierr.Response
 // @Router       /categories [get]
 func (h *Handlers) GetCategories(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	if middleware.GetUserID(c) == "" {
 		apierr.Unauthorized(c, "user context is missing")
 		return
 	}
 
-	list, err := h.CategoriesUsecase.Query.GetAll(c)
+	list, err := h.CategoriesUsecase.Query.GetAll(ctx)
 	if err != nil {
 		apierr.Handle(c, err)
 		return

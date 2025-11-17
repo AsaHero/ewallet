@@ -7,6 +7,7 @@ import (
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions/command"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions/query"
 
+	"github.com/AsaHero/e-wallet/pkg/database/postgres"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 )
 
@@ -28,6 +29,7 @@ type Module struct {
 func NewModule(
 	timeout time.Duration,
 	logger *logger.Logger,
+	txManager postgres.TxManager,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
 	transactionsRepo entities.TransactionRepository,
@@ -38,6 +40,7 @@ func NewModule(
 			CreateTransactionUsecase: command.NewCreateTransactionUsecase(
 				timeout,
 				logger,
+				txManager,
 				usersRepo,
 				accountsRepo,
 				transactionsRepo,

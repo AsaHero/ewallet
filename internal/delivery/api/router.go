@@ -49,7 +49,7 @@ func NewRouter(h *handlers.Handlers) *gin.Engine {
 		c.Next()
 	})
 	router.Use(otelgin.Middleware(
-		"golang-ddd-clean-template-api",
+		"ewallet",
 		otelgin.WithFilter(func(r *http.Request) bool {
 			if r.URL.Path == "/ping" || strings.HasSuffix(r.URL.Path, "/api/swagger") {
 				return false

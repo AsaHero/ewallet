@@ -66,7 +66,7 @@ func New() (*Config, error) {
 	c := &Config{}
 
 	// App & env
-	c.APP = getEnv("APP", "golang-ddd-clean-template")
+	c.APP = getEnv("APP", "ewallet")
 	c.Environment = app.Environment(getEnv("ENVIRONMENT", app.Local.String()))
 	if !c.Environment.IsValid() {
 		return nil, fmt.Errorf("invalid environment: %s", c.Environment)
@@ -123,7 +123,7 @@ func New() (*Config, error) {
 	c.OTEL.Exporter.OTLP.Endpoint = getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
 	c.OTEL.Exporter.OTLP.Protocol = getEnv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
 	c.OTEL.Traces.Sampler = getEnv("OTEL_TRACES_SAMPLER", "traceidratio")
-	c.OTEL.Traces.SamplerArg = getEnv("OTEL_TRACES_SAMPLER_ARG", "0.5")
+	c.OTEL.Traces.SamplerArg = getEnv("OTEL_TRACES_SAMPLER_ARG", "1.0")
 
 	// OpenAI
 	c.OpenAI.APIKey = getEnv("OPENAI_API_KEY", "")

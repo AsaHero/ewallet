@@ -24,6 +24,8 @@ import (
 // @Failure      401 {object} apierr.Response
 // @Router       /transactions [post]
 func (h *Handlers) CreateTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -36,7 +38,7 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	trn, err := h.TransactionsUsecase.Command.CreateTransaction(c, &command.CreateTransactionCommand{
+	trn, err := h.TransactionsUsecase.Command.CreateTransaction(ctx, &command.CreateTransactionCommand{
 		UserID:       userID,
 		AccountID:    req.AccountID,
 		CategoryID:   req.CategoryID,
@@ -81,6 +83,8 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 // @Failure      401 {object} apierr.Response
 // @Router       /transactions [get]
 func (h *Handlers) GetTransactions(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -97,7 +101,7 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 		page.Limit = 20
 	}
 
-	transactions, total, err := h.TransactionsUsecase.Query.GetByFilter(c, &query.GetByFilterQuery{
+	transactions, total, err := h.TransactionsUsecase.Query.GetByFilter(ctx, &query.GetByFilterQuery{
 		UserID: userID,
 		Limit:  int(page.Limit),
 		Offset: int(page.Offset),
@@ -146,6 +150,8 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 // @Failure      401 {object} apierr.Response
 // @Router       /transactions/{id} [get]
 func (h *Handlers) GetTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -158,7 +164,7 @@ func (h *Handlers) GetTransaction(c *gin.Context) {
 		return
 	}
 
-	trn, err := h.TransactionsUsecase.Query.GetByID(c, trnID)
+	trn, err := h.TransactionsUsecase.Query.GetByID(ctx, trnID)
 	if err != nil {
 		apierr.Handle(c, err)
 		return

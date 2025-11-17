@@ -23,6 +23,8 @@ import (
 // @Failure      401 {object} apierr.Response
 // @Router       /parse/text [post]
 func (h *Handlers) ParseText(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -36,7 +38,7 @@ func (h *Handlers) ParseText(c *gin.Context) {
 	}
 
 	var response *parser.ParseTextView
-	response, err := h.ParserUsecase.Command.ParseText(c, req.Content)
+	response, err := h.ParserUsecase.Command.ParseText(ctx, req.Content)
 	if err != nil {
 		apierr.Handle(c, err)
 		return

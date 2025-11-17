@@ -65,6 +65,21 @@ func (r *accountsRepo) GetByID(ctx context.Context, accountID uuid.UUID) (*entit
 	return r.ToEntity(&model), nil
 }
 
+func (r *accountsRepo) GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*entities.Account, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var model Accounts
+	err := db.NewSelect().Model(&model).
+		Where("id = ?", id.String()).
+		For("NO KEY UPDATE").
+		Scan(ctx)
+	if err != nil {
+		return nil, postgres.Error(err, model)
+	}
+
+	return r.ToEntity(&model), nil
+}
+
 func (r *accountsRepo) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Account, error) {
 	db := postgres.FromContext(ctx, r.db)
 

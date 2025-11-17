@@ -70,10 +70,28 @@ func (t *Account) UpdateName(name string) {
 	t.UpdatedAt = time.Now()
 }
 
+func (t *Account) ApplyTransaction(transaction *Transaction) error {
+	if transaction == nil {
+		return nil
+	}
+
+	switch transaction.Type {
+	case Deposit:
+		t.Balance += transaction.AmountMinor()
+	case Withdrawal:
+		t.Balance -= transaction.AmountMinor()
+	}
+
+	t.UpdatedAt = time.Now()
+
+	return nil
+}
+
 // Repository
 type AccountRepository interface {
 	Save(ctx context.Context, account *Account) error
 	GetByID(ctx context.Context, id uuid.UUID) (*Account, error)
+	GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*Account, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*Account, error)
 	GetTotalBalance(ctx context.Context, userID uuid.UUID) (int64, error)
 	Delete(ctx context.Context, account *Account) error

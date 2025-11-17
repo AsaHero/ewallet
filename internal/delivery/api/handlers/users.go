@@ -21,13 +21,15 @@ import (
 // @Failure      401 {object} apierr.Response
 // @Router       /users/me [get]
 func (h *Handlers) GetMe(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
 		return
 	}
 
-	user, err := h.UsersUsecase.Query.GetByID(c, userID)
+	user, err := h.UsersUsecase.Query.GetByID(ctx, userID)
 	if err != nil {
 		apierr.Handle(c, err)
 		return
@@ -61,6 +63,8 @@ func (h *Handlers) GetMe(c *gin.Context) {
 // @Failure      401 {object} apierr.Response
 // @Router       /users/me [patch]
 func (h *Handlers) UpdateMe(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID := middleware.GetUserID(c)
 	if userID == "" {
 		apierr.Unauthorized(c, "user context is missing")
@@ -73,7 +77,7 @@ func (h *Handlers) UpdateMe(c *gin.Context) {
 		return
 	}
 
-	user, err := h.UsersUsecase.Command.Update(c, &command.UpdateCommand{
+	user, err := h.UsersUsecase.Command.Update(ctx, &command.UpdateCommand{
 		UserID:       userID,
 		LanguageCode: req.LanguageCode,
 		CurrencyCode: req.CurrencyCode,

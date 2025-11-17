@@ -6,6 +6,7 @@ import (
 
 	"github.com/AsaHero/e-wallet/internal/entities"
 	"github.com/AsaHero/e-wallet/internal/inerr"
+	"github.com/AsaHero/e-wallet/pkg/database/postgres"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ import (
 type CreateTransactionUsecase struct {
 	contextTimeout   time.Duration
 	logger           *logger.Logger
+	txManager        postgres.TxManager
 	usersRepo        entities.UserRepository
 	accountsRepo     entities.AccountRepository
 	transactionsRepo entities.TransactionRepository
@@ -25,6 +27,7 @@ type CreateTransactionUsecase struct {
 func NewCreateTransactionUsecase(
 	timeout time.Duration,
 	logger *logger.Logger,
+	txManager postgres.TxManager,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
 	transactionsRepo entities.TransactionRepository,
@@ -37,6 +40,7 @@ func NewCreateTransactionUsecase(
 		transactionsRepo: transactionsRepo,
 		categoryRepo:     categoriesRepo,
 		logger:           logger,
+		txManager:        txManager,
 	}
 }
 
@@ -91,7 +95,11 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 			input.category = *category
 		}
 
-		input.trnType = entities.TrnType(cmd.Type)
+		if cmd.Type == "income" {
+			input.trnType = entities.Deposit
+		} else {
+			input.trnType = entities.Withdrawal
+		}
 	}
 
 	user, err := c.usersRepo.FindByID(ctx, input.userID)
@@ -100,35 +108,56 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 		return nil, err
 	}
 
-	account, err := c.accountsRepo.GetByID(ctx, input.accountID)
+	var transaction *entities.Transaction
+	err = c.txManager.WithTx(ctx, func(ctx context.Context) error {
+		account, err := c.accountsRepo.GetByIDForUpdate(ctx, input.accountID)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to get account", err)
+			return err
+		}
+
+		transaction, err = entities.NewTransaction(
+			user.ID,
+			account.ID,
+			input.category,
+			input.trnType,
+			0,
+			user.CurrencyCode,
+			cmd.Note,
+		)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to create transaction", err)
+			return err
+		}
+
+		transaction.SetAmountMajor(cmd.Amount)
+		if cmd.PerformedAt != nil {
+			transaction.Performed(*cmd.PerformedAt)
+		} else {
+			transaction.Performed(time.Now())
+		}
+
+		err = account.ApplyTransaction(transaction)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to apply transaction", err)
+			return err
+		}
+
+		err = c.accountsRepo.Save(ctx, account)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to create transaction", err)
+			return err
+		}
+
+		err = c.transactionsRepo.Save(ctx, transaction)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to create transaction", err)
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		c.logger.ErrorContext(ctx, "failed to get account", err)
-		return nil, err
-	}
-
-	transaction, err := entities.NewTransaction(
-		user.ID,
-		account.ID,
-		input.category,
-		input.trnType,
-		0,
-		user.CurrencyCode,
-		cmd.Note,
-	)
-	if err != nil {
-		c.logger.ErrorContext(ctx, "failed to create transaction", err)
-		return nil, err
-	}
-
-	transaction.SetAmountMajor(cmd.Amount)
-
-	if cmd.PerformedAt != nil {
-		transaction.Performed(*cmd.PerformedAt)
-	}
-
-	err = c.transactionsRepo.Save(ctx, transaction)
-	if err != nil {
-		c.logger.ErrorContext(ctx, "failed to create transaction", err)
 		return nil, err
 	}
 
