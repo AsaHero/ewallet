@@ -1,21 +1,4 @@
 services:
-  postgres:
-    image: postgres
-    container_name: postgres
-    restart: unless-stopped
-    tty: true
-    stdin_open: true
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE}
-    networks:
-      - ewallet-network
-
   redis:
     image: redis
     container_name: redis
@@ -30,11 +13,9 @@ services:
     build: .
     container_name: ewallet
     ports:
-      - "8080:8080"
+      - "8081:8080"
     env_file:
       - .env
-    depends_on:
-      - postgres
     networks:
       - ewallet-network
 
