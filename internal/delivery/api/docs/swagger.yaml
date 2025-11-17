@@ -101,7 +101,14 @@ definitions:
       total:
         type: integer
     type: object
-  models.ParseTransactionRequest:
+  models.ParseAudioRequest:
+    properties:
+      file_url:
+        type: string
+    required:
+    - file_url
+    type: object
+  models.ParseTextRequest:
     properties:
       content:
         type: string
@@ -183,6 +190,21 @@ definitions:
       updated_at:
         type: string
       username:
+        type: string
+    type: object
+  parser.ParseAudioView:
+    properties:
+      amount:
+        type: number
+      category_id:
+        type: integer
+      confidence:
+        type: number
+      note:
+        type: string
+      performed_at:
+        type: string
+      type:
         type: string
     type: object
   parser.ParseTextView:
@@ -396,7 +418,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ParseTransactionRequest'
+          $ref: '#/definitions/models.ParseTextRequest'
       produces:
       - application/json
       responses:
@@ -415,6 +437,38 @@ paths:
       security:
       - BearerAuth: []
       summary: Parse text
+      tags:
+      - Parse
+  /parse/voice:
+    post:
+      consumes:
+      - application/json
+      description: Parse voice
+      parameters:
+      - description: Parse transaction request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ParseAudioRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/parser.ParseAudioView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Parse voice
       tags:
       - Parse
   /stats/summary:

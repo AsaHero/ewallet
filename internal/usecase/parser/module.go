@@ -9,6 +9,7 @@ import (
 
 type Command struct {
 	*parseTextUsecase
+	*parseAudioUsecase
 }
 
 type Module struct {
@@ -18,7 +19,8 @@ type Module struct {
 func NewModule(timeout time.Duration, logger *logger.Logger, llmClient ports.LLMProvider) *Module {
 	return &Module{
 		Command: Command{
-			parseTextUsecase: NewParseTextUsecase(timeout, logger, llmClient),
+			parseTextUsecase:  NewParseTextUsecase(timeout, logger, llmClient),
+			parseAudioUsecase: NewParseAudioUsecase(timeout, logger, llmClient),
 		},
 	}
 }

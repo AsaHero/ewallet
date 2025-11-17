@@ -57,3 +57,17 @@ func (c *apiClient) ChatCompletion(ctx context.Context, model string, system str
 
 	return response, nil
 }
+
+func (c *apiClient) AudioToText(ctx context.Context, filePath string) (string, error) {
+	req := openai.AudioRequest{
+		Model:    openai.Whisper1,
+		FilePath: filePath,
+	}
+
+	transcript, err := c.client.CreateTranscription(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return transcript.Text, nil
+}

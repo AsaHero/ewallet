@@ -17,7 +17,7 @@ import (
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        request body models.ParseTransactionRequest true "Parse transaction request"
+// @Param        request body models.ParseTextRequest true "Parse transaction request"
 // @Success      200 {object} parser.ParseTextView
 // @Failure      400 {object} apierr.Response
 // @Failure      401 {object} apierr.Response
@@ -31,7 +31,7 @@ func (h *Handlers) ParseText(c *gin.Context) {
 		return
 	}
 
-	var req models.ParseTransactionRequest
+	var req models.ParseTextRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		apierr.BadRequest(c, "invalid request payload", err.Error())
 		return
@@ -47,8 +47,41 @@ func (h *Handlers) ParseText(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// ParseVoice godoc
+// @Summary Parse voice
+// @Description Parse voice
+// @Tags Parse
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body models.ParseAudioRequest true "Parse transaction request"
+// @Success      200 {object} parser.ParseAudioView
+// @Failure      400 {object} apierr.Response
+// @Failure      401 {object} apierr.Response
+// @Router       /parse/voice [post]
 func (h *Handlers) ParseVoice(c *gin.Context) {
-	c.Status(http.StatusOK)
+	ctx := c.Request.Context()
+
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		apierr.Unauthorized(c, "user context is missing")
+		return
+	}
+
+	var req models.ParseAudioRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierr.BadRequest(c, "invalid request payload", err.Error())
+		return
+	}
+
+	var response *parser.ParseAudioView
+	response, err := h.ParserUsecase.Command.ParseAudio(ctx, req.FileURL)
+	if err != nil {
+		apierr.Handle(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *Handlers) ParseImage(c *gin.Context) {

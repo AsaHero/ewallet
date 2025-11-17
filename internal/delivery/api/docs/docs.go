@@ -292,7 +292,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ParseTransactionRequest"
+                            "$ref": "#/definitions/models.ParseTextRequest"
                         }
                     }
                 ],
@@ -301,6 +301,57 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/parser.ParseTextView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/parse/voice": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Parse voice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Parse"
+                ],
+                "summary": "Parse voice",
+                "parameters": [
+                    {
+                        "description": "Parse transaction request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ParseAudioRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/parser.ParseAudioView"
                         }
                     },
                     "400": {
@@ -721,7 +772,18 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ParseTransactionRequest": {
+        "models.ParseAudioRequest": {
+            "type": "object",
+            "required": [
+                "file_url"
+            ],
+            "properties": {
+                "file_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ParseTextRequest": {
             "type": "object",
             "required": [
                 "content"
@@ -846,6 +908,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "parser.ParseAudioView": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "performed_at": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }

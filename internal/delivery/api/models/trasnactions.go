@@ -22,8 +22,12 @@ type Transaction struct {
 }
 
 // ParseTransactionRequest represents payload that is parsed by AI
-type ParseTransactionRequest struct {
+type ParseTextRequest struct {
 	Content string `json:"content" binding:"required"`
+}
+
+type ParseAudioRequest struct {
+	FileURL string `json:"file_url" binding:"required"`
 }
 
 type CreateTransactionRequest struct {
