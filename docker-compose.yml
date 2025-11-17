@@ -1,21 +1,63 @@
 services:
-  
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    networks:
+      - ewallet-network
+
+  redis:
+    image: redis
+    container_name: redis
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - "6379:6379"
+    networks:
+      - ewallet-network
+
+  ewallet:
+    build: .
+    container_name: ewallet
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    networks:
+      - ewallet-network
+
   jaeger:
     image: jaegertracing/all-in-one:1.57
     container_name: jaeger
     command:
       - "--collector.otlp.enabled=true"
     ports:
-      - "16686:16686"      # Jaeger UI
-      - "4317:4317"        # OTLP gRPC
-      - "4318:4318"        # OTLP HTTP
-      - "14268:14268"      # Jaeger HTTP Thrift (optional)
+      - "16686:16686" # Jaeger UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "14268:14268" # Jaeger HTTP Thrift (optional)
     environment:
       - LOG_LEVEL=debug
+    networks:
+      - ewallet-network
 
 volumes:
-  kafka-data:
+  postgres-data:
+    driver: local
 
 networks:
-  default:
+  ewallet-network:
     driver: bridge
+    external: true
