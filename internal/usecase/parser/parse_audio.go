@@ -3,7 +3,6 @@ package parser
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"github.com/AsaHero/e-wallet/internal/usecase/ports"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
-	"github.com/google/uuid"
 	"github.com/sashabaranov/go-openai"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -69,7 +67,7 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, fileURL string) (_ *
 	}
 
 	// Create temporary file for Whisper API
-	tmpFile, err := os.CreateTemp("", fmt.Sprintf("voice-%s.ogg", uuid.NewString()))
+	tmpFile, err := os.CreateTemp("", "voice-*.oga")
 	if err != nil {
 		p.logger.ErrorContext(ctx, "Error creating temp file", err)
 		return
