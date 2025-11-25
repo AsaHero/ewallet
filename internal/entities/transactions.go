@@ -125,5 +125,5 @@ type TransactionRepository interface {
 	GetByUserID(ctx context.Context, limit, offset int, userID uuid.UUID) ([]*Transaction, int, error)
 	GetByAccountID(ctx context.Context, accountID uuid.UUID) ([]*Transaction, error)
 	GetTotalByType(ctx context.Context, userID uuid.UUID, trnType TrnType) (int64, error)
-	GetTotalsByCategories(ctx context.Context, userID uuid.UUID) (map[int]int64, error)
+	GetTotalsByCategories(ctx context.Context, userID uuid.UUID) (map[int]int64, []int, error)
 }

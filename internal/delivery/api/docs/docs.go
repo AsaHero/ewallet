@@ -961,8 +961,11 @@ const docTemplate = `{
         "query.CategoryStat": {
             "type": "object",
             "properties": {
-                "categoryID": {
+                "category_id": {
                     "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "total": {
                     "type": "number"
@@ -975,16 +978,16 @@ const docTemplate = `{
                 "balance": {
                     "type": "number"
                 },
-                "byCategory": {
+                "by_category": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/query.CategoryStat"
                     }
                 },
-                "totalExpense": {
+                "total_expense": {
                     "type": "number"
                 },
-                "totalIncome": {
+                "total_income": {
                     "type": "number"
                 }
             }

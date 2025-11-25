@@ -224,8 +224,10 @@ definitions:
     type: object
   query.CategoryStat:
     properties:
-      categoryID:
+      category_id:
         type: integer
+      name:
+        type: string
       total:
         type: number
     type: object
@@ -233,13 +235,13 @@ definitions:
     properties:
       balance:
         type: number
-      byCategory:
+      by_category:
         items:
           $ref: '#/definitions/query.CategoryStat'
         type: array
-      totalExpense:
+      total_expense:
         type: number
-      totalIncome:
+      total_income:
         type: number
     type: object
 info:

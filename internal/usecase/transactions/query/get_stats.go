@@ -41,15 +41,17 @@ func NewGetStatsUsecase(
 }
 
 type GetStatsView struct {
-	TotalIncome  float64
-	TotalExpense float64
-	Balance      float64
-	ByCategory   []CategoryStat
+	TotalIncome  float64        `json:"total_income"`
+	TotalExpense float64        `json:"total_expense"`
+	Balance      float64        `json:"balance"`
+	ByCategory   []CategoryStat `json:"by_category"`
 }
 
 type CategoryStat struct {
-	CategoryID int
-	Total      float64
+	CategoryID   int     `json:"category_id"`
+	CategoryName string  `json:"category_name"`
+	CategorySlug string  `json:"category_slug"`
+	Total        float64 `json:"total"`
 }
 
 func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string) (_ *GetStatsView, err error) {
@@ -97,7 +99,7 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string) (_ *GetSt
 		return nil, err
 	}
 
-	byCategory, err := u.transactionsRepo.GetTotalsByCategories(ctx, user.ID)
+	byCategory, categories, err := u.transactionsRepo.GetTotalsByCategories(ctx, user.ID)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get stats by category", err)
 		return nil, err
@@ -109,10 +111,23 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string) (_ *GetSt
 		Balance:      entities.MajorFromMinor(balance, user.CurrencyCode.Scale()),
 	}
 
-	for categoryID, total := range byCategory {
+	for _, categoryID := range categories {
+		category, err := u.categoriesRepo.FindByID(ctx, categoryID)
+		if err != nil {
+			u.logger.ErrorContext(ctx, "failed to get catzegory", err)
+			return nil, err
+		}
+
+		total, ok := byCategory[categoryID]
+		if !ok {
+			continue
+		}
+
 		response.ByCategory = append(response.ByCategory, CategoryStat{
-			CategoryID: categoryID,
-			Total:      entities.MajorFromMinor(total, user.CurrencyCode.Scale()),
+			CategoryID:   category.ID,
+			CategoryName: category.Name,
+			CategorySlug: category.Slug,
+			Total:        entities.MajorFromMinor(total, user.CurrencyCode.Scale()),
 		})
 	}
 

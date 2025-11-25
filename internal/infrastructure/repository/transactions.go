@@ -147,7 +147,7 @@ func (r *transactionsRepo) GetTotalByType(ctx context.Context, userID uuid.UUID,
 	return total, nil
 }
 
-func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uuid.UUID) (map[int]int64, error) {
+func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uuid.UUID) (map[int]int64, []int, error) {
 	db := postgres.FromContext(ctx, r.db)
 
 	var results []struct {
@@ -161,17 +161,20 @@ func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uui
 		ColumnExpr("SUM(amount) as total").
 		Where("user_id = ?", userID.String()).
 		Group("category_id").
+		Order("total desc").
 		Scan(ctx, &results)
 	if err != nil {
-		return nil, postgres.Error(err, Transactions{})
+		return nil, nil, postgres.Error(err, Transactions{})
 	}
 
 	totals := make(map[int]int64)
+	categories := make([]int, 0, len(results))
 	for _, result := range results {
+		categories = append(categories, result.CategoryID)
 		totals[result.CategoryID] = result.Total
 	}
 
-	return totals, nil
+	return totals, categories, nil
 }
 
 func (r *transactionsRepo) ToModel(e *entities.Transaction) *Transactions {
