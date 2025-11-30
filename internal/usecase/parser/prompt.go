@@ -32,19 +32,19 @@ Available categories:
 
 CRITICAL RULES:
 1. ALWAYS return valid JSON only - no markdown, no code blocks, no explanations
-2. Type must be EXACTLY "income" or "expense"
+2. Type must be EXACTLY "deposit" or "withdrawal"
 3. Amount must be a positive integer (extract the main number from text)
 4. category_id must match one of the IDs above, or null if unclear
 5. Confidence should be 0.0 to 1.0 based on how clear the input is
 6. performed_at should be ISO 8601 format if date/time mentioned, otherwise null
 
 RESPONSE FORMAT (return ONLY this JSON):
-{"type":"expense","amount":5000,"category_id":1,"note":"Coffee","confidence":0.95,"performed_at":null}
+{"type":"deposit","amount":5000,"category_id":1,"note":"Coffee","confidence":0.95,"performed_at":null}
 
 EXAMPLES:
-Input: "Coffee 5000" → {"type":"expense","amount":5000,"category_id":1,"note":"Coffee","confidence":0.95,"performed_at":null}
-Input: "Got salary 5000000" → {"type":"income","amount":5000000,"category_id":8,"note":"Salary","confidence":0.95,"performed_at":null}
-Input: "Taxi yesterday 15000" → {"type":"expense","amount":15000,"category_id":2,"note":"Taxi","confidence":0.85,"performed_at":"2024-11-15T12:00:00Z"}
+Input: "Coffee 5000" → {"type":"deposit","amount":5000,"category_id":1,"note":"Coffee","confidence":0.95,"performed_at":null}
+Input: "Got salary 5000000" → {"type":"deposit","amount":5000000,"category_id":8,"note":"Salary","confidence":0.95,"performed_at":null}
+Input: "Taxi yesterday 15000" → {"type":"withdrawal","amount":15000,"category_id":2,"note":"Taxi","confidence":0.85,"performed_at":"2024-11-15T12:00:00Z"}
 
 IMPORTANT: Return ONLY the JSON object, nothing else.
 `

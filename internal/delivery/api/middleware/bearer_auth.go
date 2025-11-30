@@ -30,7 +30,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Parse the JWT token.
 		claims, err := security.ValidateToken(tokenString)
 		if err != nil {
-			apierr.Handle(c, err)
+			apierr.Unauthorized(c, "Invalid token")
 			c.Abort()
 			return
 		}

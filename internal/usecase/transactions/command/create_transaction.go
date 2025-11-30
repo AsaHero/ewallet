@@ -95,7 +95,7 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 			input.category = *category
 		}
 
-		if cmd.Type == "income" {
+		if cmd.Type == "deposit" {
 			input.trnType = entities.Deposit
 		} else {
 			input.trnType = entities.Withdrawal
