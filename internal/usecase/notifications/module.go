@@ -23,6 +23,6 @@ func NewModule(
 ) *Module {
 	return &Module{
 		recordReminderCalculateUsecase: NewRecordReminderCalculateUsecase(5*time.Minute, logger, transactionRepo, taskQueue),
-		recordReminderSendUsecase:      NewRecordReminderSendUsecase(30*time.Second, logger, userRepo, telegramBotService),
+		recordReminderSendUsecase:      NewRecordReminderSendUsecase(30*time.Second, logger, userRepo, transactionRepo, telegramBotService),
 	}
 }

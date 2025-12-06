@@ -122,8 +122,9 @@ func (t *Transaction) Performed(performedAt time.Time) {
 type TransactionRepository interface {
 	Save(ctx context.Context, transaction *Transaction) error
 	GetByID(ctx context.Context, id uuid.UUID) (*Transaction, error)
-	GetByUserID(ctx context.Context, limit, offset int, userID uuid.UUID) ([]*Transaction, int, error)
+	GetByUserID(ctx context.Context, limit, offset int, userID uuid.UUID, trnType []TrnType) ([]*Transaction, int, error)
 	GetByAccountID(ctx context.Context, accountID uuid.UUID) ([]*Transaction, error)
-	GetTotalByType(ctx context.Context, userID uuid.UUID, trnType TrnType) (int64, error)
-	GetTotalsByCategories(ctx context.Context, userID uuid.UUID) (map[int]int64, []int, error)
+	GetTotalByType(ctx context.Context, userID uuid.UUID, trnType TrnType, from, to *time.Time) (int64, error)
+	GetTotalsByCategories(ctx context.Context, userID uuid.UUID, from, to *time.Time) (map[int]int64, []int, error)
+	GetAllBetween(ctx context.Context, userID uuid.UUID, from, to time.Time) ([]*Transaction, error)
 }

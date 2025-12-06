@@ -84,13 +84,17 @@ func (r *transactionsRepo) GetByID(ctx context.Context, transactionID uuid.UUID)
 	return r.ToEntity(ctx, &model), nil
 }
 
-func (r *transactionsRepo) GetByUserID(ctx context.Context, limit, offset int, userID uuid.UUID) ([]*entities.Transaction, int, error) {
+func (r *transactionsRepo) GetByUserID(ctx context.Context, limit, offset int, userID uuid.UUID, trnType []entities.TrnType) ([]*entities.Transaction, int, error) {
 	db := postgres.FromContext(ctx, r.db)
 
 	var models []Transactions
 	query := db.NewSelect().Model(&models).
 		Where("user_id = ?", userID.String()).
 		Order("created_at desc")
+
+	if len(trnType) > 0 {
+		query = query.Where("type IN (?)", bun.In(trnType))
+	}
 
 	if limit > 0 {
 		query = query.Limit(limit)
@@ -136,16 +140,24 @@ func (r *transactionsRepo) GetByAccountID(ctx context.Context, accountID uuid.UU
 	return transactions, nil
 }
 
-func (r *transactionsRepo) GetTotalByType(ctx context.Context, userID uuid.UUID, trnType entities.TrnType) (int64, error) {
+func (r *transactionsRepo) GetTotalByType(ctx context.Context, userID uuid.UUID, trnType entities.TrnType, from, to *time.Time) (int64, error) {
 	db := postgres.FromContext(ctx, r.db)
 
 	var total int64
-	err := db.NewSelect().
+	query := db.NewSelect().
 		Model((*Transactions)(nil)).
 		ColumnExpr("COALESCE(SUM(amount), 0)").
 		Where("user_id = ?", userID.String()).
-		Where("type = ?", trnType.String()).
-		Scan(ctx, &total)
+		Where("type = ?", trnType.String())
+
+	if from != nil {
+		query = query.Where("created_at >= ?", from)
+	}
+	if to != nil {
+		query = query.Where("created_at < ?", to)
+	}
+
+	err := query.Scan(ctx, &total)
 	if err != nil {
 		return 0, postgres.Error(err, Transactions{})
 	}
@@ -153,7 +165,7 @@ func (r *transactionsRepo) GetTotalByType(ctx context.Context, userID uuid.UUID,
 	return total, nil
 }
 
-func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uuid.UUID) (map[int]int64, []int, error) {
+func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uuid.UUID, from, to *time.Time) (map[int]int64, []int, error) {
 	db := postgres.FromContext(ctx, r.db)
 
 	var results []struct {
@@ -161,14 +173,22 @@ func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uui
 		Total      int64 `bun:"total"`
 	}
 
-	err := db.NewSelect().
+	query := db.NewSelect().
 		Model((*Transactions)(nil)).
 		Column("category_id").
 		ColumnExpr("SUM(amount) as total").
 		Where("user_id = ?", userID.String()).
 		Group("category_id").
-		Order("total desc").
-		Scan(ctx, &results)
+		Order("total desc")
+
+	if from != nil {
+		query = query.Where("created_at >= ?", from)
+	}
+	if to != nil {
+		query = query.Where("created_at < ?", to)
+	}
+
+	err := query.Scan(ctx, &results)
 	if err != nil {
 		return nil, nil, postgres.Error(err, Transactions{})
 	}
@@ -181,6 +201,28 @@ func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uui
 	}
 
 	return totals, categories, nil
+}
+
+func (r *transactionsRepo) GetAllBetween(ctx context.Context, userID uuid.UUID, from, to time.Time) ([]*entities.Transaction, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var models []Transactions
+	err := db.NewSelect().Model(&models).
+		Where("user_id = ?", userID.String()).
+		Where("created_at >= ?", from).
+		Where("created_at < ?", to).
+		Where("status = ?", entities.Completed.String()).
+		Scan(ctx)
+	if err != nil {
+		return nil, postgres.Error(err, models)
+	}
+
+	var transactions []*entities.Transaction
+	for _, model := range models {
+		transactions = append(transactions, r.ToEntity(ctx, &model))
+	}
+
+	return transactions, nil
 }
 
 func (r *transactionsRepo) ToModel(e *entities.Transaction) *Transactions {

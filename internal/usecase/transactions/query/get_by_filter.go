@@ -58,7 +58,7 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, query *GetByFilter
 		}
 	}
 
-	trn, total, err := u.transactionsRepo.GetByUserID(ctx, query.Limit, query.Offset, input.userID)
+	trn, total, err := u.transactionsRepo.GetByUserID(ctx, query.Limit, query.Offset, input.userID, nil)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get transaction", err)
 		return nil, 0, err

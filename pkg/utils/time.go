@@ -117,3 +117,26 @@ func StartOfDate(date time.Time) time.Time {
 func EndOfDate(date time.Time) time.Time {
 	return time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 0, date.Location())
 }
+
+// GetStartDateByPeriod returns the start date based on the period string (day, week, month).
+// Returns nil if period is unknown or empty.
+func GetStartDateByPeriod(period string, now time.Time) *time.Time {
+	var from time.Time
+	switch period {
+	case "day":
+		from = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	case "week":
+		// Monday is the start of the week
+		offset := int(now.Weekday())
+		if offset == 0 {
+			offset = 7
+		}
+		offset--
+		from = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -offset)
+	case "month":
+		from = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	default:
+		return nil
+	}
+	return &from
+}

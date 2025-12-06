@@ -383,6 +383,14 @@ const docTemplate = `{
                     "Stats"
                 ],
                 "summary": "Returns aggregated statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Period",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -964,7 +972,10 @@ const docTemplate = `{
                 "category_id": {
                     "type": "integer"
                 },
-                "name": {
+                "category_name": {
+                    "type": "string"
+                },
+                "category_slug": {
                     "type": "string"
                 },
                 "total": {

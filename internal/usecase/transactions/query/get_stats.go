@@ -8,6 +8,7 @@ import (
 	"github.com/AsaHero/e-wallet/internal/inerr"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
+	"github.com/AsaHero/e-wallet/pkg/utils"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -54,12 +55,13 @@ type CategoryStat struct {
 	Total        float64 `json:"total"`
 }
 
-func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string) (_ *GetStatsView, err error) {
+func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, period string) (_ *GetStatsView, err error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
 	ctx, end := otlp.Start(ctx, otel.Tracer("transactions"), "GetStats",
 		attribute.String("user_id", userID),
+		attribute.String("period", period),
 	)
 	defer func() { end(err) }()
 
@@ -81,13 +83,18 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string) (_ *GetSt
 		return nil, err
 	}
 
-	totalIncome, err := u.transactionsRepo.GetTotalByType(ctx, user.ID, entities.Deposit)
+	var from, to *time.Time
+	now := time.Now().UTC()
+
+	from = utils.GetStartDateByPeriod(period, now)
+
+	totalIncome, err := u.transactionsRepo.GetTotalByType(ctx, user.ID, entities.Deposit, from, to)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get total income", err)
 		return nil, err
 	}
 
-	totalExpense, err := u.transactionsRepo.GetTotalByType(ctx, user.ID, entities.Withdrawal)
+	totalExpense, err := u.transactionsRepo.GetTotalByType(ctx, user.ID, entities.Withdrawal, from, to)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get total expense", err)
 		return nil, err
@@ -99,7 +106,7 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string) (_ *GetSt
 		return nil, err
 	}
 
-	byCategory, categories, err := u.transactionsRepo.GetTotalsByCategories(ctx, user.ID)
+	byCategory, categories, err := u.transactionsRepo.GetTotalsByCategories(ctx, user.ID, from, to)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get stats by category", err)
 		return nil, err

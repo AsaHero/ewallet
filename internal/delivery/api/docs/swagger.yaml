@@ -226,7 +226,9 @@ definitions:
     properties:
       category_id:
         type: integer
-      name:
+      category_name:
+        type: string
+      category_slug:
         type: string
       total:
         type: number
@@ -475,6 +477,11 @@ paths:
       - Parse
   /stats/summary:
     get:
+      parameters:
+      - description: Period
+        in: query
+        name: period
+        type: string
       produces:
       - application/json
       responses:

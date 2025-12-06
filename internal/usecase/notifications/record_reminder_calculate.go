@@ -61,7 +61,7 @@ func (r *recordReminderCalculateUsecase) RecordReminderCalculate(ctx context.Con
 		}
 	}
 
-	transactions, _, err := r.transactionRepo.GetByUserID(ctx, 0, 0, input.userID)
+	transactions, _, err := r.transactionRepo.GetByUserID(ctx, 0, 0, input.userID, []entities.TrnType{entities.Withdrawal})
 	if err != nil {
 		return err
 	}

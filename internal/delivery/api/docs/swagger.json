@@ -376,6 +376,14 @@
                     "Stats"
                 ],
                 "summary": "Returns aggregated statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Period",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -957,7 +965,10 @@
                 "category_id": {
                     "type": "integer"
                 },
-                "name": {
+                "category_name": {
+                    "type": "string"
+                },
+                "category_slug": {
                     "type": "string"
                 },
                 "total": {

@@ -18,6 +18,7 @@ type recordReminderSendUsecase struct {
 	contextTimeout     time.Duration
 	logger             *logger.Logger
 	userRepo           entities.UserRepository
+	transactionsRepo   entities.TransactionRepository
 	telegramBotService ports.TelegramBotService
 }
 
@@ -25,12 +26,14 @@ func NewRecordReminderSendUsecase(
 	timeout time.Duration,
 	logger *logger.Logger,
 	userRepo entities.UserRepository,
+	transactionsRepo entities.TransactionRepository,
 	telegramBotService ports.TelegramBotService,
 ) *recordReminderSendUsecase {
 	return &recordReminderSendUsecase{
 		contextTimeout:     timeout,
 		logger:             logger,
 		userRepo:           userRepo,
+		transactionsRepo:   transactionsRepo,
 		telegramBotService: telegramBotService,
 	}
 }
@@ -56,6 +59,19 @@ func (r *recordReminderSendUsecase) RecordReminderSend(ctx context.Context, user
 		}
 	}
 
+	startOfHour := time.Now().Truncate(time.Hour)
+	endOfHour := startOfHour.Add(time.Hour)
+
+	transactions, err := r.transactionsRepo.GetAllBetween(ctx, input.userID, startOfHour, endOfHour)
+	if err != nil {
+		return err
+	}
+
+	if len(transactions) > 0 {
+		otlp.Event(ctx, "reminder_skipped", attribute.String("reason", "transactions_exist"))
+		return nil
+	}
+
 	user, err := r.userRepo.FindByID(ctx, input.userID)
 	if err != nil {
 		return err
@@ -69,5 +85,6 @@ func (r *recordReminderSendUsecase) RecordReminderSend(ctx context.Context, user
 		return err
 	}
 
+	otlp.Event(ctx, "reminder_sent", attribute.String("reason", "transactions_not_exist"))
 	return nil
 }
