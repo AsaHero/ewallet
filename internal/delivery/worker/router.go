@@ -7,22 +7,7 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-func NewRouter(opts *delivery.Options) *asynq.Server {
-	server := asynq.NewServer(
-		asynq.RedisClientOpt{
-			Addr:     opts.Config.Redis.Host + ":" + opts.Config.Redis.Port,
-			Password: opts.Config.Redis.Password,
-		},
-		asynq.Config{
-			Concurrency: 100,
-			Queues: map[string]int{
-				"critical": 6,
-				"medium":   3,
-				"low":      1,
-			},
-		},
-	)
-
+func NewRouter(opts *delivery.Options) *asynq.ServeMux {
 	handler := handlers.Handler{
 		NotificationUsecase: opts.NotificationUsecase,
 	}
@@ -31,5 +16,5 @@ func NewRouter(opts *delivery.Options) *asynq.Server {
 	mux.HandleFunc(tasks.RecordReminderCalculateTaskName, handler.RecordReminderCalculate)
 	mux.HandleFunc(tasks.RecordReminderSendTaskName, handler.RecordReminderSend)
 
-	return server
+	return mux
 }

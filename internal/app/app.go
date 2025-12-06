@@ -8,11 +8,14 @@ import (
 	"github.com/AsaHero/e-wallet/internal/delivery"
 	"github.com/AsaHero/e-wallet/internal/delivery/api"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/validation"
+	"github.com/AsaHero/e-wallet/internal/delivery/worker"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/dictionary"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/openai"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/repository"
+	"github.com/AsaHero/e-wallet/internal/infrastructure/telegram_bot_service"
 	"github.com/AsaHero/e-wallet/internal/usecase/accounts"
 	"github.com/AsaHero/e-wallet/internal/usecase/categories"
+	"github.com/AsaHero/e-wallet/internal/usecase/notifications"
 	"github.com/AsaHero/e-wallet/internal/usecase/parser"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions"
 	"github.com/AsaHero/e-wallet/internal/usecase/users"
@@ -21,6 +24,7 @@ import (
 	"github.com/AsaHero/e-wallet/pkg/database/postgres"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
+	"github.com/hibiken/asynq"
 	"github.com/uptrace/bun"
 )
 
@@ -29,6 +33,8 @@ type App struct {
 	logger       *logger.Logger
 	server       *http.Server
 	db           *bun.DB
+	taskWorker   *asynq.Server
+	taskQueue    *asynq.Client
 	shutdownOTLP func(ctx context.Context) error
 }
 
@@ -62,10 +68,16 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("error initializing database: %v", err)
 	}
 
+	taskQueue := asynq.NewClient(asynq.RedisClientOpt{
+		Addr:     cfg.Redis.Host + ":" + cfg.Redis.Port,
+		Password: cfg.Redis.Password,
+	})
+
 	return &App{
 		config:       cfg,
 		logger:       logger,
 		db:           db,
+		taskQueue:    taskQueue,
 		shutdownOTLP: shutdownOTLP,
 	}, nil
 }
@@ -77,6 +89,11 @@ func (a *App) Run() error {
 	openaiProvider, err := openai.New(a.config)
 	if err != nil {
 		return fmt.Errorf("failed to create openai provider: %w", err)
+	}
+
+	telegramBotService, err := telegram_bot_service.New(a.config)
+	if err != nil {
+		return fmt.Errorf("failed to create telegram bot service: %w", err)
 	}
 
 	// init dictionary
@@ -93,6 +110,7 @@ func (a *App) Run() error {
 	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, transactionsRepo, categoriesDict)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict)
 	parserUsecase := parser.NewModule(a.config.Context.Timeout, a.logger, openaiProvider)
+	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, a.taskQueue, telegramBotService)
 
 	// init handlers
 	opts := &delivery.Options{
@@ -104,7 +122,12 @@ func (a *App) Run() error {
 		TransactionsUsecase: transactionsUsecase,
 		CategoriesUsecase:   categoriesUsecase,
 		ParserUsecase:       parserUsecase,
+		NotificationUsecase: notificationsUsecase,
 	}
+
+	mux := worker.NewRouter(opts)
+	a.taskWorker = worker.NewWorker(a.config)
+	go a.taskWorker.Run(mux)
 
 	router := api.NewRouter(opts)
 	a.server = api.NewServer(a.config, router)
@@ -120,6 +143,14 @@ func (a *App) Stop() error {
 
 	if a.db != nil {
 		a.db.Close()
+	}
+
+	if a.taskWorker != nil {
+		a.taskWorker.Stop()
+	}
+
+	if a.taskQueue != nil {
+		_ = a.taskQueue.Close()
 	}
 
 	if a.shutdownOTLP != nil {
