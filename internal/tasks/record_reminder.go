@@ -23,7 +23,7 @@ func NewRecordReminderCalculateTask(userID string) (*asynq.Task, error) {
 		return nil, err
 	}
 
-	return asynq.NewTask(RecordReminderCalculateTaskName, data), nil
+	return asynq.NewTask(RecordReminderCalculateTaskName, data, asynq.Queue("medium")), nil
 }
 
 type RecordReminderSendPayload struct {
@@ -42,5 +42,5 @@ func NewRecordReminderSendTask(userID string, text string) (*asynq.Task, error) 
 		return nil, err
 	}
 
-	return asynq.NewTask(RecordReminderSendTaskName, data), nil
+	return asynq.NewTask(RecordReminderSendTaskName, data, asynq.Queue("medium")), nil
 }
