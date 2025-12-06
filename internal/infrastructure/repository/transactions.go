@@ -90,8 +90,14 @@ func (r *transactionsRepo) GetByUserID(ctx context.Context, limit, offset int, u
 	var models []Transactions
 	query := db.NewSelect().Model(&models).
 		Where("user_id = ?", userID.String()).
-		Order("created_at desc").
-		Limit(limit).Offset(offset)
+		Order("created_at desc")
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
 
 	err := query.Scan(ctx)
 	if err != nil {

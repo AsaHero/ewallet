@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/AsaHero/e-wallet/internal/delivery"
 	"github.com/AsaHero/e-wallet/internal/delivery/api"
-	"github.com/AsaHero/e-wallet/internal/delivery/api/handlers"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/validation"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/dictionary"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/openai"
@@ -95,7 +95,7 @@ func (a *App) Run() error {
 	parserUsecase := parser.NewModule(a.config.Context.Timeout, a.logger, openaiProvider)
 
 	// init handlers
-	handler := &handlers.Handlers{
+	opts := &delivery.Options{
 		Config:              a.config,
 		Validator:           validation.NewValidator(),
 		Logger:              a.logger,
@@ -106,7 +106,7 @@ func (a *App) Run() error {
 		ParserUsecase:       parserUsecase,
 	}
 
-	router := api.NewRouter(handler)
+	router := api.NewRouter(opts)
 	a.server = api.NewServer(a.config, router)
 
 	a.logger.Info("Listen http server:", "address", a.config.Server.Host+":"+a.config.Server.Port)

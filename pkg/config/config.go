@@ -34,6 +34,12 @@ type Config struct {
 		Sslmode  string
 	}
 
+	Redis struct {
+		Host     string
+		Port     string
+		Password string
+	}
+
 	JWT struct {
 		AccessSecret  string
 		RefreshSecret string
@@ -59,6 +65,11 @@ type Config struct {
 
 	OpenAI struct {
 		APIKey string
+	}
+
+	TelegramBotService struct {
+		BaseURL string
+		Timeout time.Duration
 	}
 }
 
@@ -104,6 +115,11 @@ func New() (*Config, error) {
 	c.DB.Password = getEnv("DB_PASSWORD", "")
 	c.DB.Sslmode = getEnv("DB_SSLMODE", "disable")
 
+	// Redis
+	c.Redis.Host = getEnv("REDIS_HOST", "localhost")
+	c.Redis.Port = getEnv("REDIS_PORT", "6379")
+	c.Redis.Password = getEnv("REDIS_PASSWORD", "")
+
 	// JWT
 	c.JWT.AccessSecret = getEnv("JWT_ACCESS_SECRET", "secret")
 	c.JWT.RefreshSecret = getEnv("JWT_REFRESH_SECRET", "secret")
@@ -127,6 +143,12 @@ func New() (*Config, error) {
 
 	// OpenAI
 	c.OpenAI.APIKey = getEnv("OPENAI_API_KEY", "")
+
+	// Telegram Bot Service
+	c.TelegramBotService.BaseURL = getEnv("TELEGRAM_BOT_SERVICE_BASE_URL", "")
+	if c.TelegramBotService.Timeout, err = getEnvDuration("TELEGRAM_BOT_SERVICE_TIMEOUT", "30s"); err != nil {
+		return nil, fmt.Errorf("TELEGRAM_BOT_SERVICE_TIMEOUT: %w", err)
+	}
 
 	return c, nil
 }

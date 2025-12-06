@@ -40,6 +40,8 @@ migrate-force:
 swagger-gen:
 	swag init --parseDependency --dir ./internal/delivery/api -g router.go -o ./internal/delivery/api/docs
 
-
+.PHONY: asynqmon
+asynqmon:
+	docker run -d --rm --name asynqmon --network host hibiken/asynqmon --redis-addr=localhost:6379
 
 .DEFAULT_GOAL := build

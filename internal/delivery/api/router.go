@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/AsaHero/e-wallet/internal/delivery"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/handlers"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/middleware"
+	"github.com/AsaHero/e-wallet/internal/delivery/api/validation"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -28,7 +30,7 @@ import (
 // @in							header
 // @name						Authorization
 // @description					API Токен используется для авторизации
-func NewRouter(h *handlers.Handlers) *gin.Engine {
+func NewRouter(opts *delivery.Options) *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
@@ -58,6 +60,17 @@ func NewRouter(h *handlers.Handlers) *gin.Engine {
 			return true
 		}),
 	))
+
+	h := &handlers.Handlers{
+		Config:              opts.Config,
+		Validator:           validation.NewValidator(),
+		Logger:              opts.Logger,
+		UsersUsecase:        opts.UsersUsecase,
+		AccountsUsecase:     opts.AccountsUsecase,
+		TransactionsUsecase: opts.TransactionsUsecase,
+		CategoriesUsecase:   opts.CategoriesUsecase,
+		ParserUsecase:       opts.ParserUsecase,
+	}
 
 	// API routes
 	api := router.Group("/api")

@@ -84,6 +84,24 @@ func (r *usersRepo) FindByTGUserID(ctx context.Context, tgUserID int64) (*entiti
 	return r.ToEntity(&model), nil
 }
 
+func (r *usersRepo) FindAll(ctx context.Context) ([]*entities.User, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var models []Users
+	err := db.NewSelect().Model(&models).
+		Scan(ctx)
+	if err != nil {
+		return nil, postgres.Error(err, models)
+	}
+
+	var users []*entities.User = make([]*entities.User, len(models))
+	for i, model := range models {
+		users[i] = r.ToEntity(&model)
+	}
+
+	return users, nil
+}
+
 func (r *usersRepo) ToModel(e *entities.User) *Users {
 	if e == nil {
 		return nil

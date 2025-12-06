@@ -54,4 +54,5 @@ type UserRepository interface {
 	Save(ctx context.Context, user *User) error
 	FindByID(ctx context.Context, id uuid.UUID) (*User, error)
 	FindByTGUserID(ctx context.Context, tgUserID int64) (*User, error)
+	FindAll(ctx context.Context) ([]*User, error)
 }

@@ -7,12 +7,14 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/google/uuid v1.6.0
+	github.com/hibiken/asynq v0.25.1
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
-	github.com/redis/go-redis/v9 v9.16.0
+	github.com/redis/go-redis/v9 v9.17.2
 	github.com/sashabaranov/go-openai v1.41.2
 	github.com/segmentio/kafka-go v0.4.49
 	github.com/shogo82148/pointer v1.3.0
+	github.com/spf13/cobra v1.10.2
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
@@ -30,9 +32,17 @@ require (
 	go.opentelemetry.io/otel/sdk v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
 	google.golang.org/grpc v1.76.0
+	resty.dev/v3 v3.0.0-beta.4
 )
 
-require github.com/felixge/httpsnoop v1.0.4 // indirect
+require (
+	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
+	github.com/spf13/cast v1.10.0 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
+	golang.org/x/time v0.14.0 // indirect
+)
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
@@ -95,11 +105,11 @@ require (
 	golang.org/x/mod v0.26.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.35.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect
-	google.golang.org/protobuf v1.36.9 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
