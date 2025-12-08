@@ -20,9 +20,9 @@ type Module struct {
 func NewModule(logger *logger.Logger, llmClient ports.LLMProvider, ocrProvider ports.OCRProvider) *Module {
 	return &Module{
 		Command: Command{
-			parseTextUsecase:  NewParseTextUsecase(1*time.Minute, logger, llmClient),
-			parseAudioUsecase: NewParseAudioUsecase(1*time.Minute, logger, llmClient),
-			parseImageUsecase: NewParseImageUsecase(1*time.Minute, logger, llmClient, ocrProvider),
+			parseTextUsecase:  NewParseTextUsecase(2*time.Minute, logger, llmClient),
+			parseAudioUsecase: NewParseAudioUsecase(2*time.Minute, logger, llmClient),
+			parseImageUsecase: NewParseImageUsecase(2*time.Minute, logger, llmClient, ocrProvider),
 		},
 	}
 }
