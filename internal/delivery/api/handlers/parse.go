@@ -84,6 +84,39 @@ func (h *Handlers) ParseVoice(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// ParseImage godoc
+// @Summary Parse image
+// @Description Parse image using OCR
+// @Tags Parse
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body models.ParseImageRequest true "Parse transaction request"
+// @Success      200 {object} parser.ParseImageView
+// @Failure      400 {object} apierr.Response
+// @Failure      401 {object} apierr.Response
+// @Router       /parse/image [post]
 func (h *Handlers) ParseImage(c *gin.Context) {
-	c.Status(http.StatusOK)
+	ctx := c.Request.Context()
+
+	// userID := middleware.GetUserID(c)
+	// if userID == "" {
+	// 	apierr.Unauthorized(c, "user context is missing")
+	// 	return
+	// }
+
+	var req models.ParseImageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierr.BadRequest(c, "invalid request payload", err.Error())
+		return
+	}
+
+	var response *parser.ParseImageView
+	response, err := h.ParserUsecase.Command.ParseImage(ctx, req.ImageURL)
+	if err != nil {
+		apierr.Handle(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/AsaHero/e-wallet/internal/delivery/api/validation"
 	"github.com/AsaHero/e-wallet/internal/delivery/worker"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/dictionary"
+	"github.com/AsaHero/e-wallet/internal/infrastructure/ocr_service"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/openai"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/repository"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/telegram_bot_service"
@@ -96,6 +97,11 @@ func (a *App) Run() error {
 		return fmt.Errorf("failed to create telegram bot service: %w", err)
 	}
 
+	ocrProvider, err := ocr_service.New(a.config)
+	if err != nil {
+		return fmt.Errorf("failed to create ocr provider: %w", err)
+	}
+
 	// init dictionary
 	categoriesDict := dictionary.NewCategoriesDict(a.db)
 
@@ -109,7 +115,7 @@ func (a *App) Run() error {
 	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo)
 	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, transactionsRepo, categoriesDict)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict)
-	parserUsecase := parser.NewModule(a.config.Context.Timeout, a.logger, openaiProvider)
+	parserUsecase := parser.NewModule(a.config.Context.Timeout, a.logger, openaiProvider, ocrProvider)
 	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, a.taskQueue, telegramBotService)
 
 	// init handlers

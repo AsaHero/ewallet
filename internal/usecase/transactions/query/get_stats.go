@@ -42,10 +42,11 @@ func NewGetStatsUsecase(
 }
 
 type GetStatsView struct {
-	TotalIncome  float64        `json:"total_income"`
-	TotalExpense float64        `json:"total_expense"`
-	Balance      float64        `json:"balance"`
-	ByCategory   []CategoryStat `json:"by_category"`
+	TotalIncome       float64        `json:"total_income"`
+	TotalExpense      float64        `json:"total_expense"`
+	Balance           float64        `json:"balance"`
+	IncomeByCategory  []CategoryStat `json:"income_by_category"`
+	ExpenseByCategory []CategoryStat `json:"expense_by_category"`
 }
 
 type CategoryStat struct {
@@ -55,18 +56,23 @@ type CategoryStat struct {
 	Total        float64 `json:"total"`
 }
 
-func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, period string) (_ *GetStatsView, err error) {
+func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, accountID string, from string, to string) (_ *GetStatsView, err error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
 	ctx, end := otlp.Start(ctx, otel.Tracer("transactions"), "GetStats",
 		attribute.String("user_id", userID),
-		attribute.String("period", period),
+		attribute.String("account_id", accountID),
+		attribute.String("from", from),
+		attribute.String("to", to),
 	)
 	defer func() { end(err) }()
 
 	var input struct {
-		userID uuid.UUID
+		userID    uuid.UUID
+		accountID *uuid.UUID
+		from      *time.Time
+		to        *time.Time
 	}
 	{
 		var err error
@@ -74,6 +80,34 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, period st
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to parse user id", err)
 			return nil, inerr.NewErrValidation("user_id", "invalud uuid type")
+		}
+
+		if accountID != "" {
+			accountUUID, err := uuid.Parse(accountID)
+			if err != nil {
+				u.logger.ErrorContext(ctx, "failed to parse account id", err)
+				return nil, inerr.NewErrValidation("account_id", "invalid uuid type")
+			}
+			input.accountID = &accountUUID
+		}
+
+		if from != "" {
+			from, err := time.Parse(time.DateOnly, from)
+			if err != nil {
+				u.logger.ErrorContext(ctx, "failed to parse from", err)
+				return nil, inerr.NewErrValidation("from", "invalud date format")
+			}
+			input.from = &from
+		}
+
+		if to != "" {
+			to, err := time.Parse(time.DateOnly, to)
+			if err != nil {
+				u.logger.ErrorContext(ctx, "failed to parse to", err)
+				return nil, inerr.NewErrValidation("to", "invalud date format")
+			}
+			to = utils.EndOfDate(to)
+			input.to = &to
 		}
 	}
 
@@ -83,18 +117,13 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, period st
 		return nil, err
 	}
 
-	var from, to *time.Time
-	now := time.Now().UTC()
-
-	from = utils.GetStartDateByPeriod(period, now)
-
-	totalIncome, err := u.transactionsRepo.GetTotalByType(ctx, user.ID, entities.Deposit, from, to)
+	totalIncome, err := u.transactionsRepo.GetTotalByTypeAndAccount(ctx, user.ID, input.accountID, entities.Deposit, input.from, input.to)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get total income", err)
 		return nil, err
 	}
 
-	totalExpense, err := u.transactionsRepo.GetTotalByType(ctx, user.ID, entities.Withdrawal, from, to)
+	totalExpense, err := u.transactionsRepo.GetTotalByTypeAndAccount(ctx, user.ID, input.accountID, entities.Withdrawal, input.from, input.to)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get total expense", err)
 		return nil, err
@@ -106,7 +135,13 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, period st
 		return nil, err
 	}
 
-	byCategory, categories, err := u.transactionsRepo.GetTotalsByCategories(ctx, user.ID, from, to)
+	incomeByCategory, incomeCategories, err := u.transactionsRepo.GetTotalsByCategoriesAndAccount(ctx, user.ID, input.accountID, entities.Deposit, input.from, input.to)
+	if err != nil {
+		u.logger.ErrorContext(ctx, "failed to get stats by category", err)
+		return nil, err
+	}
+
+	expenseByCategory, expenseCategories, err := u.transactionsRepo.GetTotalsByCategoriesAndAccount(ctx, user.ID, input.accountID, entities.Withdrawal, input.from, input.to)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get stats by category", err)
 		return nil, err
@@ -118,19 +153,39 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, period st
 		Balance:      entities.MajorFromMinor(balance, user.CurrencyCode.Scale()),
 	}
 
-	for _, categoryID := range categories {
+	for _, categoryID := range incomeCategories {
 		category, err := u.categoriesRepo.FindByID(ctx, categoryID)
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to get catzegory", err)
 			return nil, err
 		}
 
-		total, ok := byCategory[categoryID]
+		total, ok := incomeByCategory[categoryID]
 		if !ok {
 			continue
 		}
 
-		response.ByCategory = append(response.ByCategory, CategoryStat{
+		response.IncomeByCategory = append(response.IncomeByCategory, CategoryStat{
+			CategoryID:   category.ID,
+			CategoryName: category.Name,
+			CategorySlug: category.Slug,
+			Total:        entities.MajorFromMinor(total, user.CurrencyCode.Scale()),
+		})
+	}
+
+	for _, categoryID := range expenseCategories {
+		category, err := u.categoriesRepo.FindByID(ctx, categoryID)
+		if err != nil {
+			u.logger.ErrorContext(ctx, "failed to get catzegory", err)
+			return nil, err
+		}
+
+		total, ok := expenseByCategory[categoryID]
+		if !ok {
+			continue
+		}
+
+		response.ExpenseByCategory = append(response.ExpenseByCategory, CategoryStat{
 			CategoryID:   category.ID,
 			CategoryName: category.Name,
 			CategorySlug: category.Slug,

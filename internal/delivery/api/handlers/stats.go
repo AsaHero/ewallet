@@ -14,7 +14,9 @@ import (
 // @Tags         Stats
 // @Produce      json
 // @Security     BearerAuth
-// @Param        period query string false "Period"
+// @Param        from query string false "From Date"
+// @Param        to query string false "To Date"
+// @Param        account_id query string false "Account ID"
 // @Success      200 {object} query.GetStatsView
 // @Failure      401 {object} apierr.Response
 // @Router       /stats/summary [get]
@@ -27,13 +29,12 @@ func (h *Handlers) GetStats(c *gin.Context) {
 		return
 	}
 
-	period := c.Query("period")
-	if period == "" {
-		period = "month"
-	}
+	from := c.Query("from")
+	to := c.Query("to")
+	accountID := c.Query("account_id")
 
 	var response *query.GetStatsView
-	response, err := h.TransactionsUsecase.Query.GetStats(ctx, userID, period)
+	response, err := h.TransactionsUsecase.Query.GetStats(ctx, userID, accountID, from, to)
 	if err != nil {
 		apierr.Handle(c, err)
 		return

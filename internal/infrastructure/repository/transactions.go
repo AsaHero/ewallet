@@ -165,7 +165,7 @@ func (r *transactionsRepo) GetTotalByType(ctx context.Context, userID uuid.UUID,
 	return total, nil
 }
 
-func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uuid.UUID, from, to *time.Time) (map[int]int64, []int, error) {
+func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uuid.UUID, trnType entities.TrnType, from, to *time.Time) (map[int]int64, []int, error) {
 	db := postgres.FromContext(ctx, r.db)
 
 	var results []struct {
@@ -178,8 +178,81 @@ func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uui
 		Column("category_id").
 		ColumnExpr("SUM(amount) as total").
 		Where("user_id = ?", userID.String()).
+		Where("type = ?", trnType.String()).
 		Group("category_id").
 		Order("total desc")
+
+	if from != nil {
+		query = query.Where("created_at >= ?", from)
+	}
+	if to != nil {
+		query = query.Where("created_at < ?", to)
+	}
+
+	err := query.Scan(ctx, &results)
+	if err != nil {
+		return nil, nil, postgres.Error(err, Transactions{})
+	}
+
+	totals := make(map[int]int64)
+	categories := make([]int, 0, len(results))
+	for _, result := range results {
+		categories = append(categories, result.CategoryID)
+		totals[result.CategoryID] = result.Total
+	}
+
+	return totals, categories, nil
+}
+
+func (r *transactionsRepo) GetTotalByTypeAndAccount(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID, trnType entities.TrnType, from, to *time.Time) (int64, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var total int64
+	query := db.NewSelect().
+		Model((*Transactions)(nil)).
+		ColumnExpr("COALESCE(SUM(amount), 0)").
+		Where("user_id = ?", userID.String()).
+		Where("type = ?", trnType.String())
+
+	if accountID != nil {
+		query = query.Where("account_id = ?", accountID.String())
+	}
+
+	if from != nil {
+		query = query.Where("created_at >= ?", from)
+	}
+	if to != nil {
+		query = query.Where("created_at < ?", to)
+	}
+
+	err := query.Scan(ctx, &total)
+	if err != nil {
+		return 0, postgres.Error(err, Transactions{})
+	}
+
+	return total, nil
+}
+
+func (r *transactionsRepo) GetTotalsByCategoriesAndAccount(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID, trnType entities.TrnType, from, to *time.Time) (map[int]int64, []int, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var results []struct {
+		CategoryID int   `bun:"category_id"`
+		Total      int64 `bun:"total"`
+	}
+
+	query := db.NewSelect().
+		Model((*Transactions)(nil)).
+		Column("category_id").
+		ColumnExpr("SUM(amount) as total").
+		Where("user_id = ?", userID.String()).
+		Where("type = ?", trnType.String()).
+		Group("category_id").
+		Order("total desc")
+
+	if accountID != nil {
+		query = query.Where("account_id = ?", accountID.String())
+	}
 
 	if from != nil {
 		query = query.Where("created_at >= ?", from)

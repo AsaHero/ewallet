@@ -71,6 +71,11 @@ type Config struct {
 		BaseURL string
 		Timeout time.Duration
 	}
+
+	OCRService struct {
+		BaseURL string
+		Timeout time.Duration
+	}
 }
 
 func New() (*Config, error) {
@@ -148,6 +153,12 @@ func New() (*Config, error) {
 	c.TelegramBotService.BaseURL = getEnv("TELEGRAM_BOT_SERVICE_BASE_URL", "")
 	if c.TelegramBotService.Timeout, err = getEnvDuration("TELEGRAM_BOT_SERVICE_TIMEOUT", "30s"); err != nil {
 		return nil, fmt.Errorf("TELEGRAM_BOT_SERVICE_TIMEOUT: %w", err)
+	}
+
+	// OCR Service
+	c.OCRService.BaseURL = getEnv("OCR_SERVICE_BASE_URL", "")
+	if c.OCRService.Timeout, err = getEnvDuration("OCR_SERVICE_TIMEOUT", "30s"); err != nil {
+		return nil, fmt.Errorf("OCR_SERVICE_TIMEOUT: %w", err)
 	}
 
 	return c, nil

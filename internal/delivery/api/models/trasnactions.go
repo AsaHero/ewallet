@@ -30,6 +30,10 @@ type ParseAudioRequest struct {
 	FileURL string `json:"file_url" binding:"required"`
 }
 
+type ParseImageRequest struct {
+	ImageURL string `json:"image_url" binding:"required"`
+}
+
 type CreateTransactionRequest struct {
 	AccountID    string     `json:"account_id" binding:"required"`
 	CategoryID   *int       `json:"category_id"`

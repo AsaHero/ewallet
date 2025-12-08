@@ -71,3 +71,34 @@ func (c *apiClient) AudioToText(ctx context.Context, filePath string) (string, e
 
 	return transcript.Text, nil
 }
+
+func (c *apiClient) ImageToText(ctx context.Context, imageURL string) (string, error) {
+	req := openai.ChatCompletionRequest{
+		Model: openai.GPT4VisionPreview,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role: openai.ChatMessageRoleUser,
+				MultiContent: []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: "Extract all text and transaction-related information from this image. Include amounts, dates, categories, and any notes you can identify.",
+					},
+					{
+						Type: openai.ChatMessagePartTypeImageURL,
+						ImageURL: &openai.ChatMessageImageURL{
+							URL: imageURL,
+						},
+					},
+				},
+			},
+		},
+		MaxTokens: 500,
+	}
+
+	completion, err := c.client.CreateChatCompletion(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return completion.Choices[0].Message.Content, nil
+}

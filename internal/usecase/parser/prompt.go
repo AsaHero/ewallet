@@ -1,5 +1,27 @@
 package parser
 
+import "fmt"
+
+func NewOcrParserMessagePrompt(ocr_text string) string {
+	return fmt.Sprintf(`
+I will give you raw OCR text from a receipt.
+The text is noisy (broken lines, extra spaces, duplicated numbers, etc).
+
+Your task:
+
+* Reconstruct a short, human-readable version of the receipt.
+* Keep only information that is clearly present in the text.
+* Do NOT classify or categorize the expense and do NOT add interpretations.
+* Do NOT invent missing data (if something is unclear, skip it).
+* Use the same language as the receipt text.
+* Make the output compact: 3–8 short lines.
+* Return ONLY the cleaned text, nothing else.
+Now clean and rewrite this receipt:
+
+%s
+`, ocr_text)
+}
+
 const ParserSystemMessage = `
 You are a financial transaction parser. Your job is to extract structured transaction data from natural language text.
 
@@ -37,6 +59,8 @@ CRITICAL RULES:
 4. category_id must match one of the IDs above, or null if unclear
 5. Confidence should be 0.0 to 1.0 based on how clear the input is
 6. performed_at should be ISO 8601 format if date/time mentioned, otherwise null
+7. note should be in the same language as the input text
+8. If it is summary of receipt, try to extract name of the place and 1–2 key items or purpose to make a short, meaningful note
 
 RESPONSE FORMAT (return ONLY this JSON):
 {"type":"deposit","amount":5000,"category_id":1,"note":"Coffee","confidence":0.95,"performed_at":null}

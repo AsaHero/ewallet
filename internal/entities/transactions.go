@@ -125,6 +125,8 @@ type TransactionRepository interface {
 	GetByUserID(ctx context.Context, limit, offset int, userID uuid.UUID, trnType []TrnType) ([]*Transaction, int, error)
 	GetByAccountID(ctx context.Context, accountID uuid.UUID) ([]*Transaction, error)
 	GetTotalByType(ctx context.Context, userID uuid.UUID, trnType TrnType, from, to *time.Time) (int64, error)
-	GetTotalsByCategories(ctx context.Context, userID uuid.UUID, from, to *time.Time) (map[int]int64, []int, error)
+	GetTotalByTypeAndAccount(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID, trnType TrnType, from, to *time.Time) (int64, error)
+	GetTotalsByCategories(ctx context.Context, userID uuid.UUID, trnType TrnType, from, to *time.Time) (map[int]int64, []int, error)
+	GetTotalsByCategoriesAndAccount(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID, trnType TrnType, from, to *time.Time) (map[int]int64, []int, error)
 	GetAllBetween(ctx context.Context, userID uuid.UUID, from, to time.Time) ([]*Transaction, error)
 }
