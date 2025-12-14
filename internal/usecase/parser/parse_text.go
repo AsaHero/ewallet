@@ -94,6 +94,7 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 	userPayment := UserPayment{
 		Language:    user.LanguageCode.String(),
 		Currency:    user.CurrencyCode.String(),
+		Timezone:    user.Timezone,
 		PaymentText: text,
 	}
 

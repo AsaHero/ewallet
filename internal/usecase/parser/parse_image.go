@@ -111,6 +111,7 @@ func (p *parseImageUsecase) ParseImage(ctx context.Context, userID string, image
 	userPayment := UserPayment{
 		Language:    user.LanguageCode.String(),
 		Currency:    user.CurrencyCode.String(),
+		Timezone:    user.Timezone,
 		PaymentText: humanreadableText,
 	}
 

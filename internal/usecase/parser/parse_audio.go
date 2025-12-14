@@ -141,6 +141,7 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 	userPayment := UserPayment{
 		Language:    user.LanguageCode.String(),
 		Currency:    user.CurrencyCode.String(),
+		Timezone:    user.Timezone,
 		PaymentText: transcriprionText,
 	}
 

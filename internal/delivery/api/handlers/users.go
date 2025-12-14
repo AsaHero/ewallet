@@ -43,6 +43,7 @@ func (h *Handlers) GetMe(c *gin.Context) {
 		Username:     user.Username,
 		LanguageCode: user.LanguageCode.String(),
 		CurrencyCode: user.CurrencyCode.String(),
+		Timezone:     user.Timezone,
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    pointer.TimeOrNil(user.UpdatedAt),
 	}

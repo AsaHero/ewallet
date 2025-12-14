@@ -39,14 +39,17 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 	}
 
 	trn, err := h.TransactionsUsecase.Command.CreateTransaction(ctx, &command.CreateTransactionCommand{
-		UserID:       userID,
-		AccountID:    req.AccountID,
-		CategoryID:   req.CategoryID,
-		Type:         req.Type,
-		Amount:       req.Amount,
-		CurrencyCode: req.CurrencyCode,
-		Note:         req.Note,
-		PerformedAt:  req.PerformedAt,
+		UserID:               userID,
+		AccountID:            req.AccountID,
+		CategoryID:           req.CategoryID,
+		Type:                 req.Type,
+		Amount:               req.Amount,
+		CurrencyCode:         req.CurrencyCode,
+		OriginalAmount:       req.OriginalAmount,
+		OriginalCurrencyCode: req.OriginalCurrencyCode,
+		FxRate:               req.FxRate,
+		Note:                 req.Note,
+		PerformedAt:          req.PerformedAt,
 	})
 	if err != nil {
 		apierr.Handle(c, err)
@@ -54,18 +57,21 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 	}
 
 	transaction := models.Transaction{
-		ID:           trn.ID.String(),
-		UserID:       trn.UserID.String(),
-		AccountID:    trn.AccountID.String(),
-		CategoryID:   &trn.Category.ID,
-		Type:         trn.Type.String(),
-		Status:       trn.Status.String(),
-		Amount:       trn.AmountMajor(),
-		CurrencyCode: trn.CurrencyCode.String(),
-		Note:         trn.RowText,
-		PerformedAt:  pointer.TimeOrNil(trn.PerformedAt),
-		RejectedAt:   pointer.TimeOrNil(trn.RejectedAt),
-		CreatedAt:    trn.CreatedAt,
+		ID:                   trn.ID.String(),
+		UserID:               trn.UserID.String(),
+		AccountID:            trn.AccountID.String(),
+		CategoryID:           &trn.Category.ID,
+		Type:                 trn.Type.String(),
+		Status:               trn.Status.String(),
+		Amount:               trn.AmountMajor(),
+		CurrencyCode:         trn.CurrencyCode.String(),
+		OriginalAmount:       pointer.Float64(trn.OriginalAmountMajor()),
+		OriginalCurrencyCode: pointer.String(trn.OriginalCurrencyCode.String()),
+		FxRate:               pointer.Float64(trn.FxRate),
+		Note:                 trn.RowText,
+		PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
+		RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
+		CreatedAt:            trn.CreatedAt,
 	}
 
 	c.JSON(http.StatusCreated, transaction)
@@ -122,18 +128,21 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 
 	for _, trn := range transactions {
 		resp.Items = append(resp.Items, models.Transaction{
-			ID:           trn.ID.String(),
-			UserID:       trn.UserID.String(),
-			AccountID:    trn.AccountID.String(),
-			CategoryID:   &trn.Category.ID,
-			Type:         trn.Type.String(),
-			Status:       trn.Status.String(),
-			Amount:       trn.AmountMajor(),
-			CurrencyCode: trn.CurrencyCode.String(),
-			Note:         trn.RowText,
-			PerformedAt:  pointer.TimeOrNil(trn.PerformedAt),
-			RejectedAt:   pointer.TimeOrNil(trn.RejectedAt),
-			CreatedAt:    trn.CreatedAt,
+			ID:                   trn.ID.String(),
+			UserID:               trn.UserID.String(),
+			AccountID:            trn.AccountID.String(),
+			CategoryID:           &trn.Category.ID,
+			Type:                 trn.Type.String(),
+			Status:               trn.Status.String(),
+			Amount:               trn.AmountMajor(),
+			CurrencyCode:         trn.CurrencyCode.String(),
+			OriginalAmount:       pointer.Float64(trn.OriginalAmountMajor()),
+			OriginalCurrencyCode: pointer.String(trn.OriginalCurrencyCode.String()),
+			FxRate:               pointer.Float64(trn.FxRate),
+			Note:                 trn.RowText,
+			PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
+			RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
+			CreatedAt:            trn.CreatedAt,
 		})
 	}
 
@@ -171,18 +180,21 @@ func (h *Handlers) GetTransaction(c *gin.Context) {
 	}
 
 	transaction := models.Transaction{
-		ID:           trn.ID.String(),
-		UserID:       trn.UserID.String(),
-		AccountID:    trn.AccountID.String(),
-		CategoryID:   &trn.Category.ID,
-		Type:         trn.Type.String(),
-		Status:       trn.Status.String(),
-		Amount:       trn.AmountMajor(),
-		CurrencyCode: trn.CurrencyCode.String(),
-		Note:         trn.RowText,
-		PerformedAt:  pointer.TimeOrNil(trn.PerformedAt),
-		RejectedAt:   pointer.TimeOrNil(trn.RejectedAt),
-		CreatedAt:    trn.CreatedAt,
+		ID:                   trn.ID.String(),
+		UserID:               trn.UserID.String(),
+		AccountID:            trn.AccountID.String(),
+		CategoryID:           &trn.Category.ID,
+		Type:                 trn.Type.String(),
+		Status:               trn.Status.String(),
+		Amount:               trn.AmountMajor(),
+		CurrencyCode:         trn.CurrencyCode.String(),
+		OriginalAmount:       pointer.Float64(trn.OriginalAmountMajor()),
+		OriginalCurrencyCode: pointer.String(trn.OriginalCurrencyCode.String()),
+		FxRate:               pointer.Float64(trn.FxRate),
+		Note:                 trn.RowText,
+		PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
+		RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
+		CreatedAt:            trn.CreatedAt,
 	}
 
 	c.JSON(http.StatusOK, transaction)

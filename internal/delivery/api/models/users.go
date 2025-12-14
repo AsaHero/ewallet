@@ -10,6 +10,7 @@ type User struct {
 	Username     string     `json:"username,omitempty"`
 	LanguageCode string     `json:"language_code,omitempty"`
 	CurrencyCode string     `json:"currency_code,omitempty"`
+	Timezone     string     `json:"timezone,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    *time.Time `json:"updated_at,omitempty"`
 }

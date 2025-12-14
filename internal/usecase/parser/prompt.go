@@ -13,6 +13,7 @@ type UserPaymentAccount struct {
 type UserPayment struct {
 	Language    string
 	Currency    string
+	Timezone    string
 	Accounts    []UserPaymentAccount
 	PaymentText string
 }
@@ -30,13 +31,14 @@ func NewUserPaymentMessagePrompt(paymentText UserPayment) string {
 USER CONTEXT:
 - Language: %s
 - Currency: %s
+- Timezone: %s
 - Accounts:
    %s
-- Current datetime: %s
+- Current datetime (UTC): %s
 
 TRANSACTION TEXT:
 %s
-`, paymentText.Language, paymentText.Currency, accounts, time.Now().UTC().Format(time.RFC3339), paymentText.PaymentText)
+`, paymentText.Language, paymentText.Currency, paymentText.Timezone, accounts, time.Now().UTC().Format(time.RFC3339), paymentText.PaymentText)
 
 	return payment
 }
