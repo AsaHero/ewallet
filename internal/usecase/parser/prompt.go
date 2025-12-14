@@ -38,6 +38,8 @@ USER CONTEXT:
 
 TRANSACTION TEXT:
 %s
+
+Generate valid JSON, nothing else.
 `, paymentText.Language, paymentText.Currency, paymentText.Timezone, accounts, time.Now().UTC().Format(time.RFC3339), paymentText.PaymentText)
 
 	return payment

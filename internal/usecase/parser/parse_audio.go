@@ -3,7 +3,6 @@ package parser
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -153,14 +152,14 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 	}
 
 	userPrompt := NewUserPaymentMessagePrompt(userPayment)
-	fmt.Println(userPrompt)
 	response, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, ParserSystemMessage, userPrompt)
 	if err != nil {
 		p.logger.ErrorContext(ctx, "failed to parse text", err)
 		return nil, err
 	}
 
-	fmt.Println(response)
+	// Clean from starting and ending ``` blocks
+	response = utils.CleanMarkdownJSON(response)
 
 	var result ParseAudioView
 	err = json.Unmarshal([]byte(response), &result)

@@ -10,6 +10,7 @@ import (
 	"github.com/AsaHero/e-wallet/internal/usecase/ports"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
+	"github.com/AsaHero/e-wallet/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/sashabaranov/go-openai"
 	"github.com/shogo82148/pointer"
@@ -128,6 +129,9 @@ func (p *parseImageUsecase) ParseImage(ctx context.Context, userID string, image
 		p.logger.ErrorContext(ctx, "failed to parse text", err)
 		return nil, err
 	}
+
+	// Clean from starting and ending ``` blocks
+	response = utils.CleanMarkdownJSON(response)
 
 	var result ParseImageView
 	err = json.Unmarshal([]byte(response), &result)
