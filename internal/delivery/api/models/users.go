@@ -17,4 +17,5 @@ type User struct {
 type UpdateUserRequest struct {
 	CurrencyCode *string `json:"currency_code"`
 	LanguageCode *string `json:"language_code"`
+	Timezone     *string `json:"timezone"`
 }

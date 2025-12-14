@@ -14,10 +14,11 @@ import (
 )
 
 type UpdateAccountUsecase struct {
-	contextTimeout time.Duration
-	logger         *logger.Logger
-	usersRepo      entities.UserRepository
-	accountsRepo   entities.AccountRepository
+	contextTimeout        time.Duration
+	logger                *logger.Logger
+	usersRepo             entities.UserRepository
+	accountsRepo          entities.AccountRepository
+	accountsDomainService *entities.AccountsService
 }
 
 func NewUpdateAccountUsecase(
@@ -25,12 +26,14 @@ func NewUpdateAccountUsecase(
 	logger *logger.Logger,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
+	accountsDomainService *entities.AccountsService,
 ) *UpdateAccountUsecase {
 	return &UpdateAccountUsecase{
-		contextTimeout: timeout,
-		usersRepo:      usersRepo,
-		accountsRepo:   accountsRepo,
-		logger:         logger,
+		contextTimeout:        timeout,
+		usersRepo:             usersRepo,
+		accountsRepo:          accountsRepo,
+		accountsDomainService: accountsDomainService,
+		logger:                logger,
 	}
 }
 
@@ -86,7 +89,15 @@ func (u *UpdateAccountUsecase) UpdateAccount(ctx context.Context, cmd *UpdateAcc
 	}
 
 	if cmd.IsDefault != nil {
-		account.UpdateDefault(*cmd.IsDefault)
+		if *cmd.IsDefault {
+			err = u.accountsDomainService.MakeDefault(ctx, account)
+			if err != nil {
+				u.logger.ErrorContext(ctx, "failed to make account default", err)
+				return nil, err
+			}
+		} else {
+			account.UpdateDefault(false)
+		}
 	}
 
 	err = u.accountsRepo.Save(ctx, account)

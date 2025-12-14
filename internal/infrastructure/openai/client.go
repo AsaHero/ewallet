@@ -2,6 +2,7 @@ package openai
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/AsaHero/e-wallet/internal/usecase/ports"
@@ -58,9 +59,10 @@ func (c *apiClient) ChatCompletion(ctx context.Context, model string, system str
 	return response, nil
 }
 
-func (c *apiClient) AudioToText(ctx context.Context, filePath string) (string, error) {
+func (c *apiClient) AudioToText(ctx context.Context, filePath string, language string) (string, error) {
 	req := openai.AudioRequest{
-		Model:    openai.Whisper1,
+		Model:    "gpt-4o-transcribe",
+		Prompt:   fmt.Sprintf("The audio might be in %s language.", language),
 		FilePath: filePath,
 	}
 

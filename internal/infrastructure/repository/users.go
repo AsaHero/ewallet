@@ -21,6 +21,7 @@ type Users struct {
 	Username     *string    `bun:"username,nullzero"`
 	LanguageCode string     `bun:"language_code,nullzero"`
 	CurrencyCode string     `bun:"currency_code,nullzero"`
+	Timezone     string     `bun:"timezone,nullzero"`
 	CreatedAt    time.Time  `bun:"created_at,default:current_timestamp"`
 	UpdatedAt    *time.Time `bun:"updated_at,nullzero"`
 }
@@ -47,6 +48,7 @@ func (r *usersRepo) Save(ctx context.Context, user *entities.User) error {
 		Set("username = EXCLUDED.username").
 		Set("language_code = EXCLUDED.language_code").
 		Set("currency_code = EXCLUDED.currency_code").
+		Set("timezone = EXCLUDED.timezone").
 		Set("updated_at = EXCLUDED.updated_at").
 		Exec(ctx)
 	if err != nil {
@@ -115,6 +117,7 @@ func (r *usersRepo) ToModel(e *entities.User) *Users {
 		Username:     pointer.StringOrNil(e.Username),
 		LanguageCode: e.LanguageCode.String(),
 		CurrencyCode: e.CurrencyCode.String(),
+		Timezone:     e.Timezone,
 		CreatedAt:    e.CreatedAt,
 		UpdatedAt:    pointer.TimeOrNil(e.UpdatedAt),
 	}
@@ -137,6 +140,7 @@ func (r *usersRepo) ToEntity(m *Users) *entities.User {
 		Username:     pointer.StringValue(m.Username),
 		LanguageCode: entities.Language(m.LanguageCode),
 		CurrencyCode: entities.Currency(m.CurrencyCode),
+		Timezone:     m.Timezone,
 		CreatedAt:    m.CreatedAt,
 		UpdatedAt:    pointer.TimeValue(m.UpdatedAt),
 	}

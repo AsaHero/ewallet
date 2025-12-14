@@ -36,7 +36,6 @@ type AuthTelegramCommand struct {
 	FirstName      string
 	LastName       string
 	Username       string
-	CurrencyCode   string
 }
 
 func (u *AuthTelegramUsecase) AuthTelegram(ctx context.Context, cmd *AuthTelegramCommand) (_ *entities.User, err error) {

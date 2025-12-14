@@ -81,6 +81,7 @@ func (h *Handlers) UpdateMe(c *gin.Context) {
 		UserID:       userID,
 		LanguageCode: req.LanguageCode,
 		CurrencyCode: req.CurrencyCode,
+		Timezone:     req.Timezone,
 	})
 	if err != nil {
 		apierr.Handle(c, err)

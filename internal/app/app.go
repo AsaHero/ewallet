@@ -9,6 +9,8 @@ import (
 	"github.com/AsaHero/e-wallet/internal/delivery/api"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/validation"
 	"github.com/AsaHero/e-wallet/internal/delivery/worker"
+	"github.com/AsaHero/e-wallet/internal/entities"
+	"github.com/AsaHero/e-wallet/internal/infrastructure/currency_api"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/dictionary"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/ocr_service"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/openai"
@@ -25,6 +27,7 @@ import (
 	"github.com/AsaHero/e-wallet/pkg/database/postgres"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
+	"github.com/AsaHero/e-wallet/pkg/redis"
 	"github.com/hibiken/asynq"
 	"github.com/uptrace/bun"
 )
@@ -36,6 +39,7 @@ type App struct {
 	db           *bun.DB
 	taskWorker   *asynq.Server
 	taskQueue    *asynq.Client
+	redis        *redis.RedisClient
 	shutdownOTLP func(ctx context.Context) error
 }
 
@@ -69,6 +73,14 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("error initializing database: %v", err)
 	}
 
+	reids, err := redis.New(
+		redis.WithAddress(cfg.Redis.Host+":"+cfg.Redis.Port),
+		redis.WithPassword(cfg.Redis.Password),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing redis: %v", err)
+	}
+
 	taskQueue := asynq.NewClient(asynq.RedisClientOpt{
 		Addr:     cfg.Redis.Host + ":" + cfg.Redis.Port,
 		Password: cfg.Redis.Password,
@@ -79,6 +91,7 @@ func New(cfg *config.Config) (*App, error) {
 		logger:       logger,
 		db:           db,
 		taskQueue:    taskQueue,
+		redis:        reids,
 		shutdownOTLP: shutdownOTLP,
 	}, nil
 }
@@ -102,6 +115,11 @@ func (a *App) Run() error {
 		return fmt.Errorf("failed to create ocr provider: %w", err)
 	}
 
+	currencyApiClient, err := currency_api.New(a.redis)
+	if err != nil {
+		return fmt.Errorf("failed to create currency api client: %w", err)
+	}
+
 	// init dictionary
 	categoriesDict := dictionary.NewCategoriesDict(a.db)
 
@@ -110,12 +128,15 @@ func (a *App) Run() error {
 	accountsRepo := repository.NewAccountsRepo(a.db)
 	transactionsRepo := repository.NewTransactionsRepo(a.db, categoriesDict)
 
+	// domain services
+	accountsDomainService := entities.NewAccountsService(accountsRepo)
+
 	// init usecases
 	usersUsecase := users.NewModule(a.config.Context.Timeout, a.logger, usersRepo)
-	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo)
+	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict)
 	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, transactionsRepo, categoriesDict)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict)
-	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider)
+	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider, usersRepo, accountsRepo, currencyApiClient)
 	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, a.taskQueue, telegramBotService)
 
 	// init handlers

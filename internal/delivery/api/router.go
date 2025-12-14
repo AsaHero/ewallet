@@ -89,13 +89,12 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 			// Account routes
 			protected.GET("/accounts", h.GetAccounts)
 			protected.POST("/accounts", h.CreateAccount)
-			protected.PUT("/accounts/:id", h.UpdateAccount)
+			protected.PATCH("/accounts/:id", h.UpdateAccount)
 			protected.DELETE("/accounts/:id", h.DeleteAccount)
 
 			// Parsers routes
 			protected.POST("/parse/text", h.ParseText)
 			protected.POST("/parse/voice", h.ParseVoice)
-
 
 			// Transaction routes
 			protected.POST("/transactions", h.CreateTransaction)

@@ -36,7 +36,6 @@ func (h *Handlers) AuthTelegram(c *gin.Context) {
 		FirstName:      req.FirstName,
 		LastName:       req.LastName,
 		Username:       req.Username,
-		CurrencyCode:   req.CurrencyCode,
 	})
 	if err != nil {
 		apierr.Handle(c, err)

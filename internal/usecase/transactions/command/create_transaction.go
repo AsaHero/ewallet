@@ -45,14 +45,17 @@ func NewCreateTransactionUsecase(
 }
 
 type CreateTransactionCommand struct {
-	UserID       string
-	AccountID    string
-	CategoryID   *int
-	Type         string
-	Amount       float64
-	CurrencyCode string
-	Note         string
-	PerformedAt  *time.Time
+	UserID               string
+	AccountID            string
+	CategoryID           *int
+	Type                 string
+	Amount               float64
+	CurrencyCode         string
+	OriginalAmount       *float64
+	OriginalCurrencyCode *string
+	FxRate               *float64
+	Note                 string
+	PerformedAt          *time.Time
 }
 
 func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *CreateTransactionCommand) (_ *entities.Transaction, err error) {
@@ -121,8 +124,6 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 			account.ID,
 			input.category,
 			input.trnType,
-			0,
-			user.CurrencyCode,
 			cmd.Note,
 		)
 		if err != nil {
@@ -130,7 +131,28 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 			return err
 		}
 
-		transaction.SetAmountMajor(cmd.Amount)
+		err = transaction.SetAmountMajor(cmd.Amount, user.CurrencyCode)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to set amount major", err)
+			return err
+		}
+
+		if cmd.OriginalAmount != nil {
+			err = transaction.SetOriginalAmountMajor(*cmd.OriginalAmount, entities.Currency(*cmd.OriginalCurrencyCode))
+			if err != nil {
+				c.logger.ErrorContext(ctx, "failed to set original amount major", err)
+				return err
+			}
+
+			if cmd.FxRate != nil {
+				err = transaction.SetFxRate(*cmd.FxRate)
+				if err != nil {
+					c.logger.ErrorContext(ctx, "failed to set fx rate", err)
+					return err
+				}
+			}
+		}
+
 		if cmd.PerformedAt != nil {
 			transaction.Performed(*cmd.PerformedAt)
 		} else {

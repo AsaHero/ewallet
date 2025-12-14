@@ -6,6 +6,7 @@ type Language string
 
 const (
 	RU Language = "ru"
+	UZ Language = "uz"
 )
 
 func (l Language) String() string {
@@ -15,13 +16,12 @@ func (l Language) String() string {
 type Currency string
 
 const (
-	NULL Currency = ""
-	UZS  Currency = "UZS"
-	RUB  Currency = "RUB"
-	USD  Currency = "USD"
-	EUR  Currency = "EUR"
-	JPY  Currency = "JPY"
-	KWD  Currency = "KWD"
+	UZS Currency = "UZS"
+	RUB Currency = "RUB"
+	USD Currency = "USD"
+	EUR Currency = "EUR"
+	JPY Currency = "JPY"
+	KWD Currency = "KWD"
 )
 
 var currencyScale = map[Currency]int{

@@ -35,6 +35,7 @@ type UpdateCommand struct {
 	UserID       string
 	LanguageCode *string
 	CurrencyCode *string
+	Timezone     *string
 }
 
 func (u *UpdateUsecase) Update(ctx context.Context, cmd *UpdateCommand) (_ *entities.User, err error) {
@@ -70,6 +71,10 @@ func (u *UpdateUsecase) Update(ctx context.Context, cmd *UpdateCommand) (_ *enti
 
 	if cmd.CurrencyCode != nil {
 		user.UpdateCurrencyCode(entities.Currency(*cmd.CurrencyCode))
+	}
+
+	if cmd.Timezone != nil {
+		user.UpdateTimezone(*cmd.Timezone)
 	}
 
 	err = u.usersRepo.Save(ctx, user)

@@ -73,6 +73,18 @@ func (c *RedisClient) Delete(ctx context.Context, key string) error {
 	return c.client.Del(ctx, c.prefixer(key)).Err()
 }
 
+func (c *RedisClient) GetBytes(ctx context.Context, key string) ([]byte, error) {
+	return c.client.Get(ctx, c.prefixer(key)).Bytes()
+}
+
+func (c *RedisClient) SetBytes(ctx context.Context, key string, value []byte, ttl ...time.Duration) error {
+	if len(ttl) == 0 {
+		ttl = []time.Duration{c.defaultTTL}
+	}
+
+	return c.client.Set(ctx, c.prefixer(key), value, ttl[0]).Err()
+}
+
 func (c *RedisClient) GetStruct(ctx context.Context, key string, dest any) error {
 	fmt.Println("Get: ", c.prefixer(key))
 	data, err := c.Get(ctx, c.prefixer(key))

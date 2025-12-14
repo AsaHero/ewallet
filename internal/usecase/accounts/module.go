@@ -30,11 +30,14 @@ func NewModule(
 	logger *logger.Logger,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
+	accountsDomainService *entities.AccountsService,
+	trnasctionsRepo entities.TransactionRepository,
+	categoriesRepo entities.CategoryRepository,
 ) *Module {
 	m := &Module{
 		Command: Commands{
-			CreateAccountUsecase: command.NewCreateAccountUsecase(timeout, logger, usersRepo, accountsRepo),
-			UpdateAccountUsecase: command.NewUpdateAccountUsecase(timeout, logger, usersRepo, accountsRepo),
+			CreateAccountUsecase: command.NewCreateAccountUsecase(timeout, logger, usersRepo, accountsRepo, trnasctionsRepo, categoriesRepo),
+			UpdateAccountUsecase: command.NewUpdateAccountUsecase(timeout, logger, usersRepo, accountsRepo, accountsDomainService),
 			DeleteAccountUsecase: command.NewDeleteAccountUsecase(timeout, logger, usersRepo, accountsRepo),
 		},
 		Query: Query{

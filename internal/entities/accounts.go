@@ -87,6 +87,43 @@ func (t *Account) ApplyTransaction(transaction *Transaction) error {
 	return nil
 }
 
+// Domain Service
+type AccountsService struct {
+	repo AccountRepository
+}
+
+func NewAccountsService(repo AccountRepository) *AccountsService {
+	return &AccountsService{
+		repo: repo,
+	}
+}
+
+func (s *AccountsService) MakeDefault(ctx context.Context, account *Account) error {
+	allAccounts, err := s.repo.GetByUserID(ctx, account.UserID)
+	if err != nil {
+		return err
+	}
+
+	for _, a := range allAccounts {
+		if a.ID != account.ID {
+			a.UpdateDefault(false)
+		}
+
+		err = s.repo.Save(ctx, a)
+		if err != nil {
+			return err
+		}
+	}
+
+	account.UpdateDefault(true)
+	err = s.repo.Save(ctx, account)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
 // Repository
 type AccountRepository interface {
 	Save(ctx context.Context, account *Account) error

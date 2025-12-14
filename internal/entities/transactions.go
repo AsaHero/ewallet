@@ -58,8 +58,6 @@ func NewTransaction(
 	accountID uuid.UUID,
 	category Category,
 	trnType TrnType,
-	amount int64,
-	currencyCode Currency,
 	rowText string,
 ) (*Transaction, error) {
 	if userID == uuid.Nil {
@@ -68,30 +66,30 @@ func NewTransaction(
 	if accountID == uuid.Nil {
 		return nil, errors.New("invalid account id")
 	}
-	if amount < 0 {
-		return nil, errors.New("invalid amount")
-	}
 
 	return &Transaction{
-		ID:           uuid.New(),
-		UserID:       userID,
-		AccountID:    accountID,
-		Category:     category,
-		Type:         trnType,
-		Status:       New,
-		Amount:       amount,
-		CurrencyCode: currencyCode,
-		RowText:      rowText,
-		CreatedAt:    time.Now(),
+		ID:        uuid.New(),
+		UserID:    userID,
+		AccountID: accountID,
+		Category:  category,
+		Type:      trnType,
+		Status:    New,
+		RowText:   rowText,
+		CreatedAt: time.Now(),
 	}, nil
 }
 
-func (t *Transaction) SetAmountMajor(major float64) error {
+func (t *Transaction) SetAmountMajor(major float64, currency Currency) error {
 	if major <= 0 {
 		return fmt.Errorf("amount must be > 0")
 	}
 
-	t.Amount = MinorFromMajor(major, t.CurrencyCode.Scale())
+	if currency == "" {
+		return fmt.Errorf("currency code must not be empty")
+	}
+
+	t.Amount = MinorFromMajor(major, currency.Scale())
+	t.CurrencyCode = currency
 	return nil
 }
 
@@ -100,7 +98,12 @@ func (t *Transaction) SetAmountMinor(minor int64, currency Currency) error {
 		return fmt.Errorf("amount must be > 0")
 	}
 
+	if currency == "" {
+		return fmt.Errorf("currency code must not be empty")
+	}
+
 	t.Amount = minor
+	t.CurrencyCode = currency
 	return nil
 }
 
@@ -110,6 +113,51 @@ func (t *Transaction) AmountMinor() int64 {
 
 func (t *Transaction) AmountMajor() float64 {
 	return MajorFromMinor(t.Amount, t.CurrencyCode.Scale())
+}
+
+func (t *Transaction) SetOriginalAmountMajor(major float64, currency Currency) error {
+	if major <= 0 {
+		return fmt.Errorf("amount must be > 0")
+	}
+
+	if currency == "" {
+		return fmt.Errorf("original currency code must not be empty")
+	}
+
+	t.OriginalAmount = MinorFromMajor(major, currency.Scale())
+	t.OriginalCurrencyCode = currency
+	return nil
+}
+
+func (t *Transaction) SetOriginalAmountMinor(minor int64, currency Currency) error {
+	if minor <= 0 {
+		return fmt.Errorf("amount must be > 0")
+	}
+
+	if currency == "" {
+		return fmt.Errorf("original currency code must not be empty")
+	}
+
+	t.OriginalAmount = minor
+	t.OriginalCurrencyCode = currency
+	return nil
+}
+
+func (t *Transaction) OriginalAmountMinor() int64 {
+	return t.OriginalAmount
+}
+
+func (t *Transaction) OriginalAmountMajor() float64 {
+	return MajorFromMinor(t.OriginalAmount, t.OriginalCurrencyCode.Scale())
+}
+
+func (t *Transaction) SetFxRate(rate float64) error {
+	if rate <= 0 {
+		return fmt.Errorf("fx rate must be > 0")
+	}
+
+	t.FxRate = rate
+	return nil
 }
 
 func (t *Transaction) Performed(performedAt time.Time) {

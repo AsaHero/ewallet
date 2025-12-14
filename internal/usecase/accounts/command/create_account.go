@@ -14,10 +14,12 @@ import (
 )
 
 type CreateAccountUsecase struct {
-	contextTimeout time.Duration
-	logger         *logger.Logger
-	usersRepo      entities.UserRepository
-	accountsRepo   entities.AccountRepository
+	contextTimeout   time.Duration
+	logger           *logger.Logger
+	usersRepo        entities.UserRepository
+	accountsRepo     entities.AccountRepository
+	transactionsRepo entities.TransactionRepository
+	categoryRepo     entities.CategoryRepository
 }
 
 func NewCreateAccountUsecase(
@@ -25,12 +27,16 @@ func NewCreateAccountUsecase(
 	logger *logger.Logger,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
+	transactionsRepo entities.TransactionRepository,
+	categoryRepo entities.CategoryRepository,
 ) *CreateAccountUsecase {
 	return &CreateAccountUsecase{
-		contextTimeout: timeout,
-		usersRepo:      usersRepo,
-		accountsRepo:   accountsRepo,
-		logger:         logger,
+		contextTimeout:   timeout,
+		usersRepo:        usersRepo,
+		accountsRepo:     accountsRepo,
+		transactionsRepo: transactionsRepo,
+		categoryRepo:     categoryRepo,
+		logger:           logger,
 	}
 }
 
@@ -73,13 +79,41 @@ func (u *CreateAccountUsecase) CreateAccount(ctx context.Context, cmd *CreateAcc
 		u.logger.ErrorContext(ctx, "failed to create account", err)
 		return nil, err
 	}
-
 	account.SetAmountMajor(cmd.Balance, user.CurrencyCode)
 	account.UpdateDefault(cmd.IsDefault)
+
+	otherCategory, err := u.categoryRepo.FindBySlug(ctx, entities.Other.String())
+	if err != nil {
+		u.logger.ErrorContext(ctx, "failed to get other category", err)
+		return nil, err
+	}
+	transaction, err := entities.NewTransaction(
+		account.UserID,
+		account.ID,
+		*otherCategory,
+		entities.Deposit,
+		"Баланс счета",
+	)
+	if err != nil {
+		u.logger.ErrorContext(ctx, "failed to create transaction", err)
+		return nil, err
+	}
+
+	err = transaction.SetAmountMajor(cmd.Balance, user.CurrencyCode)
+	if err != nil {
+		u.logger.ErrorContext(ctx, "failed to set amount major", err)
+		return nil, err
+	}
 
 	err = u.accountsRepo.Save(ctx, account)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to save account", err)
+		return nil, err
+	}
+
+	err = u.transactionsRepo.Save(ctx, transaction)
+	if err != nil {
+		u.logger.ErrorContext(ctx, "failed to save transaction", err)
 		return nil, err
 	}
 

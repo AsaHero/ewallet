@@ -2,6 +2,16 @@ package entities
 
 import "context"
 
+type CategorySlug string
+
+const (
+	Other CategorySlug = "other"
+)
+
+func (c CategorySlug) String() string {
+	return string(c)
+}
+
 type Category struct {
 	ID       int
 	Slug     string

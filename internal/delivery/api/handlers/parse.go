@@ -38,7 +38,7 @@ func (h *Handlers) ParseText(c *gin.Context) {
 	}
 
 	var response *parser.ParseTextView
-	response, err := h.ParserUsecase.Command.ParseText(ctx, req.Content)
+	response, err := h.ParserUsecase.Command.ParseText(ctx, userID, req.Content)
 	if err != nil {
 		apierr.Handle(c, err)
 		return
@@ -75,7 +75,7 @@ func (h *Handlers) ParseVoice(c *gin.Context) {
 	}
 
 	var response *parser.ParseAudioView
-	response, err := h.ParserUsecase.Command.ParseAudio(ctx, req.FileURL)
+	response, err := h.ParserUsecase.Command.ParseAudio(ctx, userID, req.FileURL)
 	if err != nil {
 		apierr.Handle(c, err)
 		return
@@ -99,11 +99,11 @@ func (h *Handlers) ParseVoice(c *gin.Context) {
 func (h *Handlers) ParseImage(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// userID := middleware.GetUserID(c)
-	// if userID == "" {
-	// 	apierr.Unauthorized(c, "user context is missing")
-	// 	return
-	// }
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		apierr.Unauthorized(c, "user context is missing")
+		return
+	}
 
 	var req models.ParseImageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -112,7 +112,7 @@ func (h *Handlers) ParseImage(c *gin.Context) {
 	}
 
 	var response *parser.ParseImageView
-	response, err := h.ParserUsecase.Command.ParseImage(ctx, req.ImageURL)
+	response, err := h.ParserUsecase.Command.ParseImage(ctx, userID, req.ImageURL)
 	if err != nil {
 		apierr.Handle(c, err)
 		return
