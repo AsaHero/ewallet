@@ -35,7 +35,7 @@ func NewAccount(userID uuid.UUID, name string) (*Account, error) {
 }
 
 func (t *Account) SetAmountMajor(major float64, currency Currency) error {
-	if major <= 0 {
+	if major < 0 {
 		return fmt.Errorf("amount must be > 0")
 	}
 
@@ -44,7 +44,7 @@ func (t *Account) SetAmountMajor(major float64, currency Currency) error {
 }
 
 func (t *Account) SetAmountMinor(minor int64, currency Currency) error {
-	if minor <= 0 {
+	if minor < 0 {
 		return fmt.Errorf("amount must be > 0")
 	}
 
