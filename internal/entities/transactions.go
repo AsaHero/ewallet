@@ -80,7 +80,7 @@ func NewTransaction(
 }
 
 func (t *Transaction) SetAmountMajor(major float64, currency Currency) error {
-	if major <= 0 {
+	if major < 0 {
 		return fmt.Errorf("amount must be > 0")
 	}
 
@@ -94,7 +94,7 @@ func (t *Transaction) SetAmountMajor(major float64, currency Currency) error {
 }
 
 func (t *Transaction) SetAmountMinor(minor int64, currency Currency) error {
-	if minor <= 0 {
+	if minor < 0 {
 		return fmt.Errorf("amount must be > 0")
 	}
 
@@ -116,7 +116,7 @@ func (t *Transaction) AmountMajor() float64 {
 }
 
 func (t *Transaction) SetOriginalAmountMajor(major float64, currency Currency) error {
-	if major <= 0 {
+	if major < 0 {
 		return fmt.Errorf("amount must be > 0")
 	}
 
@@ -130,7 +130,7 @@ func (t *Transaction) SetOriginalAmountMajor(major float64, currency Currency) e
 }
 
 func (t *Transaction) SetOriginalAmountMinor(minor int64, currency Currency) error {
-	if minor <= 0 {
+	if minor < 0 {
 		return fmt.Errorf("amount must be > 0")
 	}
 
