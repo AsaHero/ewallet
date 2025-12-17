@@ -22,7 +22,7 @@ func NewModule(
 	telegramBotService ports.TelegramBotService,
 ) *Module {
 	return &Module{
-		recordReminderCalculateUsecase: NewRecordReminderCalculateUsecase(5*time.Minute, logger, transactionRepo, taskQueue),
+		recordReminderCalculateUsecase: NewRecordReminderCalculateUsecase(5*time.Minute, logger, transactionRepo, userRepo, taskQueue),
 		recordReminderSendUsecase:      NewRecordReminderSendUsecase(30*time.Second, logger, userRepo, transactionRepo, telegramBotService),
 	}
 }

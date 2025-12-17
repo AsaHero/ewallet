@@ -23,6 +23,7 @@ type recordReminderCalculateUsecase struct {
 	contextTimeout  time.Duration
 	logger          *logger.Logger
 	transactionRepo entities.TransactionRepository
+	userRepo        entities.UserRepository
 	taskQueue       *asynq.Client
 }
 
@@ -30,125 +31,183 @@ func NewRecordReminderCalculateUsecase(
 	timeout time.Duration,
 	logger *logger.Logger,
 	transactionRepo entities.TransactionRepository,
+	userRepo entities.UserRepository,
 	taskQueue *asynq.Client,
 ) *recordReminderCalculateUsecase {
 	return &recordReminderCalculateUsecase{
 		contextTimeout:  timeout,
 		logger:          logger,
 		transactionRepo: transactionRepo,
+		userRepo:        userRepo,
 		taskQueue:       taskQueue,
 	}
 }
 
-func (r *recordReminderCalculateUsecase) RecordReminderCalculate(ctx context.Context, userID string) error {
+func (r *recordReminderCalculateUsecase) RecordReminderCalculate(ctx context.Context, userID string) (err error) {
 	ctx, cancel := context.WithTimeout(ctx, r.contextTimeout)
 	defer cancel()
 
 	ctx, end := otlp.Start(ctx, otel.Tracer("notifications"), "RecordReminderCalculate",
 		attribute.String("user_id", userID),
 	)
-	defer func() { end(nil) }()
+	defer func() { end(err) }()
 
 	var input struct {
 		userID uuid.UUID
 	}
 	{
 		var err error
-
 		input.userID, err = uuid.Parse(userID)
 		if err != nil {
 			return inerr.NewErrValidation("user_id", err.Error())
 		}
 	}
 
-	transactions, _, err := r.transactionRepo.GetByUserID(ctx, 0, 0, input.userID, []entities.TrnType{entities.Withdrawal})
+	user, err := r.userRepo.FindByID(ctx, input.userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	loc := time.UTC
+	if user.Timezone != "" {
+		if l, err := time.LoadLocation(user.Timezone); err == nil {
+			loc = l
+		}
+	}
+
+	now := time.Now().In(loc)
+	from := now.Add(-60 * 24 * time.Hour)
+	transactions, err := r.transactionRepo.GetAllBetween(ctx, input.userID, from.UTC(), time.Now().UTC())
 	if err != nil {
 		return err
 	}
 
-	// Calculate peak moments
-	hourCounts := make(map[int]int)
+	// 1. Calculate Expenses Reminders
+	if err := r.processExpenseReminders(ctx, transactions, input.userID, now, loc); err != nil {
+		r.logger.ErrorContext(ctx, "failed to process expense reminders", err)
+	}
+
+	// 2. Calculate Income Reminders
+	if err := r.processIncomeReminders(ctx, transactions, input.userID, now, loc); err != nil {
+		r.logger.ErrorContext(ctx, "failed to process income reminders", err)
+	}
+
+	return nil
+}
+
+func (r *recordReminderCalculateUsecase) processExpenseReminders(
+	ctx context.Context,
+	allTransactions []*entities.Transaction,
+	userID uuid.UUID,
+	now time.Time,
+	loc *time.Location,
+) error {
+	// Filter: Last 14 days, Withdrawal, Weekday matches Now
+	cutoff := now.Add(-14 * 24 * time.Hour)
+	var filtered []*entities.Transaction
+
+	for _, t := range allTransactions {
+		tTime := t.CreatedAt.In(loc)
+		if t.Type == entities.Withdrawal &&
+			tTime.After(cutoff) &&
+			tTime.Weekday() == now.Weekday() {
+			filtered = append(filtered, t)
+		}
+	}
+
+	return r.scheduleReminders(ctx, filtered, userID, now, loc, false)
+}
+
+func (r *recordReminderCalculateUsecase) processIncomeReminders(
+	ctx context.Context,
+	allTransactions []*entities.Transaction,
+	userID uuid.UUID,
+	now time.Time,
+	loc *time.Location,
+) error {
+	// Filter: Last 60 days (already fetched), Deposit, Day matches Now
+	// Note: We use the already fetched range which is 60 days.
+
+	var filtered []*entities.Transaction
+	for _, t := range allTransactions {
+		tTime := t.CreatedAt.In(loc)
+		if t.Type == entities.Deposit &&
+			tTime.Day() == now.Day() {
+			filtered = append(filtered, t)
+		}
+	}
+
+	return r.scheduleReminders(ctx, filtered, userID, now, loc, true)
+}
+
+func (r *recordReminderCalculateUsecase) scheduleReminders(
+	ctx context.Context,
+	transactions []*entities.Transaction,
+	userID uuid.UUID,
+	now time.Time,
+	loc *time.Location,
+	isIncome bool,
+) error {
+	if len(transactions) == 0 {
+		return nil
+	}
+
+	// Calculate peak 2-hour windows
+	// Map window start hour (0, 2, ..., 22) -> count
+	windowCounts := make(map[int]int)
 	categoryCounts := make(map[string]int)
 
 	for _, t := range transactions {
-		// Use the hour from the transaction's CreatedAt time
-		// Assuming CreatedAt is in the same timezone as we want to schedule, or we rely on relative consistency
-		hourCounts[t.CreatedAt.Hour()]++
-		categoryCounts[t.Category.Name]++
-	}
-
-	type hourCount struct {
-		Hour  int
-		Count int
-	}
-	var sortedHours []hourCount
-	for h, c := range hourCounts {
-		sortedHours = append(sortedHours, hourCount{h, c})
-	}
-	sort.Slice(sortedHours, func(i, j int) bool {
-		return sortedHours[i].Count > sortedHours[j].Count
-	})
-
-	var peakHours []int
-	if len(sortedHours) == 0 {
-		peakHours = []int{12} // Default to 12:00 PM if no transactions
-	} else {
-		limit := 3
-		if len(sortedHours) < limit {
-			limit = len(sortedHours)
-		}
-		for i := 0; i < limit; i++ {
-			peakHours = append(peakHours, sortedHours[i].Hour)
+		h := t.CreatedAt.In(loc).Hour()
+		windowStart := (h / 2) * 2 // 0, 2, 4...
+		windowCounts[windowStart]++
+		if t.Category.Name != "" {
+			categoryCounts[t.Category.Name]++
 		}
 	}
 
-	// Construct texts based on categories of transactions
-	type categoryCount struct {
-		Name  string
-		Count int
-	}
-	var sortedCategories []categoryCount
-	for n, c := range categoryCounts {
-		sortedCategories = append(sortedCategories, categoryCount{n, c})
-	}
-	sort.Slice(sortedCategories, func(i, j int) bool {
-		return sortedCategories[i].Count > sortedCategories[j].Count
-	})
+	// Identify peaks with frequency >= 2 (Income) or >= 1 (Expense)
+	var peakWindows []int
+	for w, count := range windowCounts {
+		if isIncome && count >= 2 {
+			peakWindows = append(peakWindows, w)
+		}
 
-	var topCategories []string
-	catLimit := 3
-	if len(sortedCategories) < catLimit {
-		catLimit = len(sortedCategories)
-	}
-	for i := 0; i < catLimit; i++ {
-		topCategories = append(topCategories, sortedCategories[i].Name)
+		if !isIncome && count >= 1 {
+			peakWindows = append(peakWindows, w)
+		}
 	}
 
+	if len(peakWindows) == 0 {
+		return nil
+	}
+	sort.Ints(peakWindows)
+
+	// Prepare text
+	topCategories := r.getTopCategories(categoryCounts)
 	var text string
-	switch utils.RandomInt(1, 3) {
-	case 1:
-		text = r.constructReminderText1(topCategories)
-	case 2:
-		text = r.constructReminderText2(topCategories)
-	case 3:
-		text = r.constructReminderText3(topCategories)
+	if isIncome {
+		text = r.constructIncomeReminderText(topCategories)
+	} else {
+		text = r.constructExpenseReminderText(topCategories)
 	}
 
-	// Construct tasks
-	now := time.Now()
-	for _, h := range peakHours {
-		// Calculate next occurrence of h
-		// We use the current location
-		nextRun := time.Date(now.Year(), now.Month(), now.Day(), h, 0, 0, 0, now.Location())
+	// Schedule tasks
+	for _, w := range peakWindows {
 
-		// If the time has already passed today, schedule for tomorrow
+		// Target time: Start of window + random offset (0-60 mins)
+		randomOffset := utils.RandomInt(0, 60)
+
+		nextRun := time.Date(now.Year(), now.Month(), now.Day(), w, 0, 0, 0, loc).Add(time.Duration(randomOffset) * time.Minute)
+
+		// If time passed, skip for today. Do NOT schedule for tomorrow (as per user request).
 		if nextRun.Before(now) {
-			nextRun = nextRun.Add(24 * time.Hour)
+			continue
 		}
 
 		delay := nextRun.Sub(now)
 
-		task, err := tasks.NewRecordReminderSendTask(input.userID.String(), text)
+		task, err := tasks.NewRecordReminderSendTask(userID.String(), text)
 		if err != nil {
 			r.logger.ErrorContext(ctx, "failed to create task", err)
 			continue
@@ -160,6 +219,48 @@ func (r *recordReminderCalculateUsecase) RecordReminderCalculate(ctx context.Con
 	}
 
 	return nil
+}
+
+func (r *recordReminderCalculateUsecase) getTopCategories(counts map[string]int) []string {
+	type catCount struct {
+		Name  string
+		Count int
+	}
+	var sorted []catCount
+	for n, c := range counts {
+		sorted = append(sorted, catCount{n, c})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Count > sorted[j].Count
+	})
+
+	var top []string
+	limit := 3
+	if len(sorted) < limit {
+		limit = len(sorted)
+	}
+	for i := 0; i < limit; i++ {
+		top = append(top, sorted[i].Name)
+	}
+	return top
+}
+
+func (r *recordReminderCalculateUsecase) constructExpenseReminderText(topCategories []string) string {
+	// Pick random template
+	switch utils.RandomInt(1, 3) {
+	case 1:
+		return r.constructReminderText1(topCategories)
+	case 2:
+		return r.constructReminderText2(topCategories)
+	default:
+		return r.constructReminderText3(topCategories)
+	}
+}
+
+func (r *recordReminderCalculateUsecase) constructIncomeReminderText(topCategories []string) string {
+	text := "💰 Кажется, сегодня день получки?"
+	text += "\n\nНе забудьте внести доход, чтобы мы могли посчитать, на что вы будете шиковать! 😎"
+	return text
 }
 
 func (r *recordReminderCalculateUsecase) constructReminderText1(topCategories []string) string {
