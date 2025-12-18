@@ -83,12 +83,12 @@ func (r *recordReminderCalculateUsecase) RecordReminderCalculate(ctx context.Con
 	}
 
 	// 1. Calculate Expenses Reminders
-	if err := r.processExpenseReminders(ctx, transactions, input.userID, now, loc); err != nil {
+	if err := r.processExpenseReminders(ctx, transactions, user, now, loc); err != nil {
 		r.logger.ErrorContext(ctx, "failed to process expense reminders", err)
 	}
 
 	// 2. Calculate Income Reminders
-	if err := r.processIncomeReminders(ctx, transactions, input.userID, now, loc); err != nil {
+	if err := r.processIncomeReminders(ctx, transactions, user, now, loc); err != nil {
 		r.logger.ErrorContext(ctx, "failed to process income reminders", err)
 	}
 
@@ -98,7 +98,7 @@ func (r *recordReminderCalculateUsecase) RecordReminderCalculate(ctx context.Con
 func (r *recordReminderCalculateUsecase) processExpenseReminders(
 	ctx context.Context,
 	allTransactions []*entities.Transaction,
-	userID uuid.UUID,
+	user *entities.User,
 	now time.Time,
 	loc *time.Location,
 ) error {
@@ -115,13 +115,13 @@ func (r *recordReminderCalculateUsecase) processExpenseReminders(
 		}
 	}
 
-	return r.scheduleReminders(ctx, filtered, userID, now, loc, false)
+	return r.scheduleReminders(ctx, filtered, user, now, loc, false)
 }
 
 func (r *recordReminderCalculateUsecase) processIncomeReminders(
 	ctx context.Context,
 	allTransactions []*entities.Transaction,
-	userID uuid.UUID,
+	user *entities.User,
 	now time.Time,
 	loc *time.Location,
 ) error {
@@ -137,13 +137,13 @@ func (r *recordReminderCalculateUsecase) processIncomeReminders(
 		}
 	}
 
-	return r.scheduleReminders(ctx, filtered, userID, now, loc, true)
+	return r.scheduleReminders(ctx, filtered, user, now, loc, true)
 }
 
 func (r *recordReminderCalculateUsecase) scheduleReminders(
 	ctx context.Context,
 	transactions []*entities.Transaction,
-	userID uuid.UUID,
+	user *entities.User,
 	now time.Time,
 	loc *time.Location,
 	isIncome bool,
@@ -161,8 +161,8 @@ func (r *recordReminderCalculateUsecase) scheduleReminders(
 		h := t.CreatedAt.In(loc).Hour()
 		windowStart := (h / 2) * 2 // 0, 2, 4...
 		windowCounts[windowStart]++
-		if t.Category.Name != "" {
-			categoryCounts[t.Category.Name]++
+		if t.Category.GetName(user.LanguageCode) != "" {
+			categoryCounts[t.Category.GetName(user.LanguageCode)]++
 		}
 	}
 
@@ -207,7 +207,7 @@ func (r *recordReminderCalculateUsecase) scheduleReminders(
 
 		delay := nextRun.Sub(now)
 
-		task, err := tasks.NewRecordReminderSendTask(userID.String(), text)
+		task, err := tasks.NewRecordReminderSendTask(user.ID.String(), text)
 		if err != nil {
 			r.logger.ErrorContext(ctx, "failed to create task", err)
 			continue

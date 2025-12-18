@@ -87,6 +87,23 @@ func (t *Account) ApplyTransaction(transaction *Transaction) error {
 	return nil
 }
 
+func (t *Account) RevertTransaction(transaction *Transaction) error {
+	if transaction == nil {
+		return nil
+	}
+
+	switch transaction.Type {
+	case Deposit:
+		t.Balance -= transaction.AmountMinor()
+	case Withdrawal:
+		t.Balance += transaction.AmountMinor()
+	}
+
+	t.UpdatedAt = time.Now()
+
+	return nil
+}
+
 // Domain Service
 type AccountsService struct {
 	repo AccountRepository

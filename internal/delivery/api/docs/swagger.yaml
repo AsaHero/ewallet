@@ -49,17 +49,6 @@ definitions:
       user:
         $ref: '#/definitions/models.User'
     type: object
-  models.Category:
-    properties:
-      id:
-        type: integer
-      name:
-        type: string
-      position:
-        type: integer
-      slug:
-        type: string
-    type: object
   models.CreateAccountRequest:
     properties:
       balance:
@@ -81,7 +70,13 @@ definitions:
         type: integer
       currency_code:
         type: string
+      fx_rate:
+        type: number
       note:
+        type: string
+      original_amount:
+        type: number
+      original_currency_code:
         type: string
       performed_at:
         type: string
@@ -150,6 +145,8 @@ definitions:
         type: string
       status:
         type: string
+      subcategory_id:
+        type: integer
       type:
         type: string
       user_id:
@@ -171,11 +168,39 @@ definitions:
       name:
         type: string
     type: object
+  models.UpdateTransactionRequest:
+    properties:
+      amount:
+        type: number
+      category_id:
+        type: integer
+      currency_code:
+        type: string
+      fx_rate:
+        type: number
+      note:
+        type: string
+      original_amount:
+        type: number
+      original_currency_code:
+        type: string
+      performed_at:
+        type: string
+      subcategory_id:
+        type: integer
+      type:
+        type: string
+    required:
+    - amount
+    - type
+    type: object
   models.UpdateUserRequest:
     properties:
       currency_code:
         type: string
       language_code:
+        type: string
+      timezone:
         type: string
     type: object
   models.User:
@@ -194,6 +219,8 @@ definitions:
         type: string
       tg_user_id:
         type: integer
+      timezone:
+        type: string
       updated_at:
         type: string
       username:
@@ -201,13 +228,23 @@ definitions:
     type: object
   parser.ParseAudioView:
     properties:
+      account_id:
+        type: string
       amount:
         type: number
       category_id:
         type: integer
       confidence:
         type: number
+      currency:
+        type: string
+      fx_rate:
+        type: number
       note:
+        type: string
+      original_amount:
+        type: number
+      original_currency:
         type: string
       performed_at:
         type: string
@@ -216,13 +253,23 @@ definitions:
     type: object
   parser.ParseImageView:
     properties:
+      account_id:
+        type: string
       amount:
         type: number
       category_id:
         type: integer
       confidence:
         type: number
+      currency:
+        type: string
+      fx_rate:
+        type: number
       note:
+        type: string
+      original_amount:
+        type: number
+      original_currency:
         type: string
       performed_at:
         type: string
@@ -231,26 +278,49 @@ definitions:
     type: object
   parser.ParseTextView:
     properties:
+      account_id:
+        type: string
       amount:
         type: number
       category_id:
         type: integer
       confidence:
         type: number
+      currency:
+        type: string
+      fx_rate:
+        type: number
       note:
+        type: string
+      original_amount:
+        type: number
+      original_currency:
         type: string
       performed_at:
         type: string
       type:
         type: string
     type: object
+  query.Category:
+    properties:
+      emoji:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      position:
+        type: integer
+      user_id:
+        type: string
+    type: object
   query.CategoryStat:
     properties:
+      category_emoji:
+        type: string
       category_id:
         type: integer
       category_name:
-        type: string
-      category_slug:
         type: string
       total:
         type: number
@@ -271,6 +341,21 @@ definitions:
         type: number
       total_income:
         type: number
+    type: object
+  query.Subcategory:
+    properties:
+      category_id:
+        type: integer
+      emoji:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      position:
+        type: integer
+      user_id:
+        type: string
     type: object
 info:
   contact:
@@ -426,7 +511,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Category'
+              $ref: '#/definitions/query.Category'
             type: array
         "401":
           description: Unauthorized
@@ -564,6 +649,26 @@ paths:
       summary: Returns aggregated statistics
       tags:
       - Stats
+  /subcategories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/query.Subcategory'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Lists available subcategories
+      tags:
+      - Categories
   /transactions:
     get:
       parameters:
@@ -626,6 +731,31 @@ paths:
       tags:
       - Transactions
   /transactions/{id}:
+    delete:
+      parameters:
+      - description: transaction id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Deletes a transaction
+      tags:
+      - Transactions
     get:
       parameters:
       - description: transaction id
@@ -647,6 +777,41 @@ paths:
       security:
       - BearerAuth: []
       summary: Returns transaction by ID
+      tags:
+      - Transactions
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: transaction id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Transaction'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Updates a transaction
       tags:
       - Transactions
   /users/me:

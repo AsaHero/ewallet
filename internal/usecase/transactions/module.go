@@ -13,6 +13,8 @@ import (
 
 type Commands struct {
 	*command.CreateTransactionUsecase
+	*command.DeleteTransactionUsecase
+	*command.UpdateTransactionUsecase
 }
 
 type Query struct {
@@ -34,6 +36,7 @@ func NewModule(
 	accountsRepo entities.AccountRepository,
 	transactionsRepo entities.TransactionRepository,
 	categortiesRepo entities.CategoryRepository,
+	subcategoriesRepo entities.SubcategoryRepository,
 ) *Module {
 	m := &Module{
 		Command: Commands{
@@ -45,6 +48,24 @@ func NewModule(
 				accountsRepo,
 				transactionsRepo,
 				categortiesRepo,
+				subcategoriesRepo,
+			),
+			DeleteTransactionUsecase: command.NewDeleteTransactionUsecase(
+				timeout,
+				logger,
+				txManager,
+				accountsRepo,
+				transactionsRepo,
+			),
+			UpdateTransactionUsecase: command.NewUpdateTransactionUsecase(
+				timeout,
+				logger,
+				txManager,
+				usersRepo,
+				accountsRepo,
+				transactionsRepo,
+				categortiesRepo,
+				subcategoriesRepo,
 			),
 		},
 		Query: Query{

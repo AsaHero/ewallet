@@ -17,7 +17,8 @@ type Transactions struct {
 	ID                   string     `bun:"id,type:uuid,pk"`
 	UserID               string     `bun:"user_id,type:uuid"`
 	AccountID            string     `bun:"account_id,type:uuid"`
-	CategoryID           int        `bun:"category_id"`
+	CategoryID           *int       `bun:"category_id,nullzero"`
+	SubcategoryID        *int       `bun:"subcategory_id,nullzero"`
 	Type                 string     `bun:"type"`
 	Status               string     `bun:"status"`
 	Amount               int64      `bun:"amount"`
@@ -32,14 +33,16 @@ type Transactions struct {
 }
 
 type transactionsRepo struct {
-	db             bun.IDB
-	categoriesRepo entities.CategoryRepository
+	db                bun.IDB
+	categoriesRepo    entities.CategoryRepository
+	subcategoriesRepo entities.SubcategoryRepository
 }
 
-func NewTransactionsRepo(db bun.IDB, categoriesRepo entities.CategoryRepository) entities.TransactionRepository {
+func NewTransactionsRepo(db bun.IDB, categoriesRepo entities.CategoryRepository, subcategoriesRepo entities.SubcategoryRepository) entities.TransactionRepository {
 	return &transactionsRepo{
-		db:             db,
-		categoriesRepo: categoriesRepo,
+		db:                db,
+		categoriesRepo:    categoriesRepo,
+		subcategoriesRepo: subcategoriesRepo,
 	}
 }
 
@@ -68,6 +71,20 @@ func (r *transactionsRepo) Save(ctx context.Context, transaction *entities.Trans
 	}
 
 	return err
+}
+
+func (r *transactionsRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	db := postgres.FromContext(ctx, r.db)
+
+	_, err := db.NewDelete().
+		Model((*Transactions)(nil)).
+		Where("id = ?", id).
+		Exec(ctx)
+	if err != nil {
+		return postgres.Error(err, Transactions{})
+	}
+
+	return nil
 }
 
 func (r *transactionsRepo) GetByID(ctx context.Context, transactionID uuid.UUID) (*entities.Transaction, error) {
@@ -307,7 +324,6 @@ func (r *transactionsRepo) ToModel(e *entities.Transaction) *Transactions {
 		ID:                   e.ID.String(),
 		UserID:               e.UserID.String(),
 		AccountID:            e.AccountID.String(),
-		CategoryID:           e.Category.ID,
 		Type:                 e.Type.String(),
 		Status:               e.Status.String(),
 		Amount:               e.Amount,
@@ -319,6 +335,14 @@ func (r *transactionsRepo) ToModel(e *entities.Transaction) *Transactions {
 		PerformedAt:          pointer.TimeOrNil(e.PerformedAt),
 		RejectedAt:           pointer.TimeOrNil(e.RejectedAt),
 		CreatedAt:            e.CreatedAt,
+	}
+
+	if e.Category != nil {
+		transactions.CategoryID = pointer.Int(e.Category.ID.Int())
+	}
+
+	if e.Subcategory != nil {
+		transactions.SubcategoryID = pointer.Int(e.Subcategory.ID)
 	}
 
 	return transactions
@@ -350,10 +374,17 @@ func (r *transactionsRepo) ToEntity(ctx context.Context, m *Transactions) *entit
 		CreatedAt:            m.CreatedAt,
 	}
 
-	if m.CategoryID != 0 {
-		category, err := r.categoriesRepo.FindByID(ctx, m.CategoryID)
+	if m.CategoryID != nil {
+		category, err := r.categoriesRepo.FindByID(ctx, *m.CategoryID)
 		if err == nil && category != nil {
-			e.Category = *category
+			e.Category = category
+		}
+	}
+
+	if m.SubcategoryID != nil {
+		subcategory, err := r.subcategoriesRepo.FindByID(ctx, *m.SubcategoryID)
+		if err == nil && subcategory != nil {
+			e.Subcategory = subcategory
 		}
 	}
 

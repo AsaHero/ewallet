@@ -122,11 +122,12 @@ func (a *App) Run() error {
 
 	// init dictionary
 	categoriesDict := dictionary.NewCategoriesDict(a.db)
+	subcategoriesDict := dictionary.NewSubcategoriesDict(a.db)
 
 	// init repository
 	usersRepo := repository.NewUsersRepo(a.db)
 	accountsRepo := repository.NewAccountsRepo(a.db)
-	transactionsRepo := repository.NewTransactionsRepo(a.db, categoriesDict)
+	transactionsRepo := repository.NewTransactionsRepo(a.db, categoriesDict, subcategoriesDict)
 
 	// domain services
 	accountsDomainService := entities.NewAccountsService(accountsRepo)
@@ -134,8 +135,8 @@ func (a *App) Run() error {
 	// init usecases
 	usersUsecase := users.NewModule(a.config.Context.Timeout, a.logger, usersRepo)
 	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict)
-	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, transactionsRepo, categoriesDict)
-	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict)
+	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, transactionsRepo, categoriesDict, subcategoriesDict)
+	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict, subcategoriesDict, usersRepo)
 	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider, usersRepo, accountsRepo, currencyApiClient)
 	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, a.taskQueue, telegramBotService)
 

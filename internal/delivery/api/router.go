@@ -100,9 +100,12 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 			protected.POST("/transactions", h.CreateTransaction)
 			protected.GET("/transactions", h.GetTransactions)
 			protected.GET("/transactions/:id", h.GetTransaction)
+			protected.PUT("/transactions/:id", h.UpdateTransaction)
+			protected.DELETE("/transactions/:id", h.DeleteTransaction)
 
 			// Category routes
 			protected.GET("/categories", h.GetCategories)
+			protected.GET("/subcategories", h.GetSubcategories)
 
 			// Stats routes
 			protected.GET("/stats/summary", h.GetStats)

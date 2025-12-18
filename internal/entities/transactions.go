@@ -39,7 +39,8 @@ type Transaction struct {
 	ID                   uuid.UUID
 	UserID               uuid.UUID
 	AccountID            uuid.UUID
-	Category             Category
+	Category             *Category
+	Subcategory          *Subcategory
 	Type                 TrnType
 	Status               TrnStatus
 	Amount               int64
@@ -56,7 +57,6 @@ type Transaction struct {
 func NewTransaction(
 	userID uuid.UUID,
 	accountID uuid.UUID,
-	category Category,
 	trnType TrnType,
 	rowText string,
 ) (*Transaction, error) {
@@ -71,12 +71,22 @@ func NewTransaction(
 		ID:        uuid.New(),
 		UserID:    userID,
 		AccountID: accountID,
-		Category:  category,
 		Type:      trnType,
 		Status:    New,
 		RowText:   rowText,
 		CreatedAt: time.Now(),
 	}, nil
+}
+
+func (t *Transaction) Categorise(category *Category, subcategory *Subcategory) error {
+	if category != nil {
+		t.Category = category
+	}
+	if subcategory != nil {
+		t.Subcategory = subcategory
+	}
+
+	return nil
 }
 
 func (t *Transaction) SetAmountMajor(major float64, currency Currency) error {
@@ -165,6 +175,59 @@ func (t *Transaction) Performed(performedAt time.Time) {
 	t.PerformedAt = performedAt
 }
 
+func (t *Transaction) Update(
+	category *Category,
+	subcategory *Subcategory,
+	trnType TrnType,
+	amount float64,
+	currency Currency,
+	originalAmount *float64,
+	originalCurrency *string,
+	fxRate *float64,
+	rowText string,
+	performedAt *time.Time,
+) error {
+	t.Type = trnType
+	t.RowText = rowText
+
+	err := t.Categorise(category, subcategory)
+	if err != nil {
+		return err
+	}
+
+	err = t.SetAmountMajor(amount, currency)
+	if err != nil {
+		return err
+	}
+
+	if originalAmount != nil && originalCurrency != nil {
+		err = t.SetOriginalAmountMajor(*originalAmount, Currency(*originalCurrency))
+		if err != nil {
+			return err
+		}
+
+		if fxRate != nil {
+			err = t.SetFxRate(*fxRate)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// User deleted original amount data
+		t.OriginalAmount = 0
+		t.OriginalCurrencyCode = ""
+		t.FxRate = 0
+	}
+
+	if performedAt != nil {
+		t.Performed(*performedAt)
+	} else if t.PerformedAt.IsZero() {
+		t.Performed(time.Now())
+	}
+
+	return nil
+}
+
 // Repository
 
 type TransactionRepository interface {
@@ -177,4 +240,5 @@ type TransactionRepository interface {
 	GetTotalsByCategories(ctx context.Context, userID uuid.UUID, trnType TrnType, from, to *time.Time) (map[int]int64, []int, error)
 	GetTotalsByCategoriesAndAccount(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID, trnType TrnType, from, to *time.Time) (map[int]int64, []int, error)
 	GetAllBetween(ctx context.Context, userID uuid.UUID, from, to time.Time) ([]*Transaction, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }

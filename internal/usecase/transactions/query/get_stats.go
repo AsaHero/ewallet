@@ -50,10 +50,10 @@ type GetStatsView struct {
 }
 
 type CategoryStat struct {
-	CategoryID   int     `json:"category_id"`
-	CategoryName string  `json:"category_name"`
-	CategorySlug string  `json:"category_slug"`
-	Total        float64 `json:"total"`
+	CategoryID    int     `json:"category_id"`
+	CategoryName  string  `json:"category_name"`
+	CategoryEmoji string  `json:"category_emoji"`
+	Total         float64 `json:"total"`
 }
 
 func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, accountID string, from string, to string) (_ *GetStatsView, err error) {
@@ -166,10 +166,10 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, accountID
 		}
 
 		response.IncomeByCategory = append(response.IncomeByCategory, CategoryStat{
-			CategoryID:   category.ID,
-			CategoryName: category.Name,
-			CategorySlug: category.Slug,
-			Total:        entities.MajorFromMinor(total, user.CurrencyCode.Scale()),
+			CategoryID:    category.ID.Int(),
+			CategoryName:  category.GetName(user.LanguageCode),
+			CategoryEmoji: category.Emoji,
+			Total:         entities.MajorFromMinor(total, user.CurrencyCode.Scale()),
 		})
 	}
 
@@ -186,10 +186,10 @@ func (u *GetStatsUsecase) GetStats(ctx context.Context, userID string, accountID
 		}
 
 		response.ExpenseByCategory = append(response.ExpenseByCategory, CategoryStat{
-			CategoryID:   category.ID,
-			CategoryName: category.Name,
-			CategorySlug: category.Slug,
-			Total:        entities.MajorFromMinor(total, user.CurrencyCode.Scale()),
+			CategoryID:    category.ID.Int(),
+			CategoryName:  category.GetName(user.LanguageCode),
+			CategoryEmoji: category.Emoji,
+			Total:         entities.MajorFromMinor(total, user.CurrencyCode.Scale()),
 		})
 	}
 

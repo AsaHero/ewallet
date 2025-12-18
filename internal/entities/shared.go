@@ -5,6 +5,7 @@ import "math"
 type Language string
 
 const (
+	EN Language = "en"
 	RU Language = "ru"
 	UZ Language = "uz"
 )

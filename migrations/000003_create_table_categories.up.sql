@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS categories(
     name_ru varchar(255) NOT NULL,
     name_uz varchar(255) NOT NULL,
     emoji varchar(64) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone,
     PRIMARY KEY (id),
     CONSTRAINT categories_user_id_fk FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -24,6 +26,8 @@ CREATE TABLE IF NOT EXISTS subcategories(
     name_ru varchar(255) NOT NULL,
     name_uz varchar(255) NOT NULL,
     emoji varchar(64) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone,
     PRIMARY KEY (id),
     CONSTRAINT subcategories_category_id_fk FOREIGN KEY (category_id) REFERENCES categories(id),
     CONSTRAINT subcategories_user_id_fk FOREIGN KEY (user_id) REFERENCES users(id)

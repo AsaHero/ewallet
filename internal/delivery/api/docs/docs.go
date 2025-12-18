@@ -254,7 +254,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Category"
+                                "$ref": "#/definitions/query.Category"
                             }
                         }
                     },
@@ -470,6 +470,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/subcategories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Lists available subcategories",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/query.Subcategory"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/transactions": {
             "get": {
                 "security": [
@@ -596,6 +629,101 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.Transaction"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Updates a transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "transaction id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Transaction"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Deletes a transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "transaction id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
                         }
                     },
                     "401": {
@@ -764,23 +892,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Category": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "position": {
-                    "type": "integer"
-                },
-                "slug": {
-                    "type": "string"
-                }
-            }
-        },
         "models.CreateAccountRequest": {
             "type": "object",
             "required": [
@@ -818,7 +929,16 @@ const docTemplate = `{
                 "currency_code": {
                     "type": "string"
                 },
+                "fx_rate": {
+                    "type": "number"
+                },
                 "note": {
+                    "type": "string"
+                },
+                "original_amount": {
+                    "type": "number"
+                },
+                "original_currency_code": {
                     "type": "string"
                 },
                 "performed_at": {
@@ -918,6 +1038,9 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
+                "subcategory_id": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -951,6 +1074,45 @@ const docTemplate = `{
                 }
             }
         },
+        "models.UpdateTransactionRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "type"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "currency_code": {
+                    "type": "string"
+                },
+                "fx_rate": {
+                    "type": "number"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "original_amount": {
+                    "type": "number"
+                },
+                "original_currency_code": {
+                    "type": "string"
+                },
+                "performed_at": {
+                    "type": "string"
+                },
+                "subcategory_id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "models.UpdateUserRequest": {
             "type": "object",
             "properties": {
@@ -958,6 +1120,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "language_code": {
+                    "type": "string"
+                },
+                "timezone": {
                     "type": "string"
                 }
             }
@@ -986,6 +1151,9 @@ const docTemplate = `{
                 "tg_user_id": {
                     "type": "integer"
                 },
+                "timezone": {
+                    "type": "string"
+                },
                 "updated_at": {
                     "type": "string"
                 },
@@ -997,6 +1165,9 @@ const docTemplate = `{
         "parser.ParseAudioView": {
             "type": "object",
             "properties": {
+                "account_id": {
+                    "type": "string"
+                },
                 "amount": {
                     "type": "number"
                 },
@@ -1006,7 +1177,19 @@ const docTemplate = `{
                 "confidence": {
                     "type": "number"
                 },
+                "currency": {
+                    "type": "string"
+                },
+                "fx_rate": {
+                    "type": "number"
+                },
                 "note": {
+                    "type": "string"
+                },
+                "original_amount": {
+                    "type": "number"
+                },
+                "original_currency": {
                     "type": "string"
                 },
                 "performed_at": {
@@ -1020,6 +1203,9 @@ const docTemplate = `{
         "parser.ParseImageView": {
             "type": "object",
             "properties": {
+                "account_id": {
+                    "type": "string"
+                },
                 "amount": {
                     "type": "number"
                 },
@@ -1029,7 +1215,19 @@ const docTemplate = `{
                 "confidence": {
                     "type": "number"
                 },
+                "currency": {
+                    "type": "string"
+                },
+                "fx_rate": {
+                    "type": "number"
+                },
                 "note": {
+                    "type": "string"
+                },
+                "original_amount": {
+                    "type": "number"
+                },
+                "original_currency": {
                     "type": "string"
                 },
                 "performed_at": {
@@ -1043,6 +1241,9 @@ const docTemplate = `{
         "parser.ParseTextView": {
             "type": "object",
             "properties": {
+                "account_id": {
+                    "type": "string"
+                },
                 "amount": {
                     "type": "number"
                 },
@@ -1052,7 +1253,19 @@ const docTemplate = `{
                 "confidence": {
                     "type": "number"
                 },
+                "currency": {
+                    "type": "string"
+                },
+                "fx_rate": {
+                    "type": "number"
+                },
                 "note": {
+                    "type": "string"
+                },
+                "original_amount": {
+                    "type": "number"
+                },
+                "original_currency": {
                     "type": "string"
                 },
                 "performed_at": {
@@ -1063,16 +1276,36 @@ const docTemplate = `{
                 }
             }
         },
+        "query.Category": {
+            "type": "object",
+            "properties": {
+                "emoji": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "query.CategoryStat": {
             "type": "object",
             "properties": {
+                "category_emoji": {
+                    "type": "string"
+                },
                 "category_id": {
                     "type": "integer"
                 },
                 "category_name": {
-                    "type": "string"
-                },
-                "category_slug": {
                     "type": "string"
                 },
                 "total": {
@@ -1103,6 +1336,29 @@ const docTemplate = `{
                 },
                 "total_income": {
                     "type": "number"
+                }
+            }
+        },
+        "query.Subcategory": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "emoji": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         }

@@ -10,17 +10,19 @@ import (
 
 type Command struct{}
 type Query struct {
-	*query.GetAllUsecase
+	*query.GetAllCategoriesUsecase
+	*query.GetAllSubcategoriesUsecase
 }
 type Module struct {
 	Command Command
 	Query   Query
 }
 
-func NewModule(timeout time.Duration, logger *logger.Logger, categoriesRepo entities.CategoryRepository) *Module {
+func NewModule(timeout time.Duration, logger *logger.Logger, categoriesRepo entities.CategoryRepository, subcategoriesRepo entities.SubcategoryRepository, usersRepo entities.UserRepository) *Module {
 	m := &Module{
 		Query: Query{
-			GetAllUsecase: query.NewGetAllUsecase(timeout, logger, categoriesRepo),
+			GetAllCategoriesUsecase:    query.NewGetAllCategoriesUsecase(timeout, logger, usersRepo, categoriesRepo),
+			GetAllSubcategoriesUsecase: query.NewGetAllSubcategoriesUsecase(timeout, logger, usersRepo, subcategoriesRepo),
 		},
 	}
 
