@@ -1195,6 +1195,9 @@ const docTemplate = `{
                 "performed_at": {
                     "type": "string"
                 },
+                "subcategory_id": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 }
@@ -1233,6 +1236,9 @@ const docTemplate = `{
                 "performed_at": {
                     "type": "string"
                 },
+                "subcategory_id": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 }
@@ -1270,6 +1276,9 @@ const docTemplate = `{
                 },
                 "performed_at": {
                     "type": "string"
+                },
+                "subcategory_id": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"

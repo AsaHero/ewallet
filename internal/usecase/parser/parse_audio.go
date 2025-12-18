@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/AsaHero/e-wallet/internal/entities"
@@ -19,7 +20,6 @@ import (
 	"github.com/shogo82148/pointer"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"golang.org/x/sync/errgroup"
 )
 
 type parseAudioUsecase struct {
@@ -56,17 +56,18 @@ func NewParseAudioUsecase(
 }
 
 type ParseAudioView struct {
+	AccountID        *string    `json:"account_id,omitempty"`
 	Type             string     `json:"type"`
 	Amount           float64    `json:"amount"`
 	Currency         string     `json:"currency,omitempty"`
 	OriginalAmount   *float64   `json:"original_amount,omitempty"`
 	OriginalCurrency *string    `json:"original_currency,omitempty"`
 	FxRate           *float64   `json:"fx_rate,omitempty"`
-	AccountID        *string    `json:"account_id,omitempty"`
 	CategoryID       *int       `json:"category_id,omitempty"`
+	SubcategoryID    *int       `json:"subcategory_id,omitempty"`
 	Note             string     `json:"note,omitempty"`
-	Confidence       float64    `json:"confidence"`
 	PerformedAt      *time.Time `json:"performed_at,omitempty"`
+	Confidence       float64    `json:"confidence"`
 }
 
 func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileURL string) (_ *ParseAudioView, err error) {
@@ -144,30 +145,28 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 		return nil, err
 	}
 
-	// Parallel execution using errgroup
-	g, ctx := errgroup.WithContext(ctx)
-
-	var categoryResult struct {
-		CategoryID    int     `json:"category_id"`
-		SubcategoryID *int    `json:"subcategory_id"`
-		Confidence    float64 `json:"confidence"`
-	}
-
-	var detailsResult ParseAudioView
+	var categoryResult CategoryClassificationResult
+	var detailsResult TransactionDetailsResult
+	var wg sync.WaitGroup
+	var errChan = make(chan error, 2)
 
 	// 1. Category Classification
-	g.Go(func() error {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		// Fetch categories and subcategories
 		categories, err := p.categoriesRepo.FindAll(ctx, input.userID)
 		if err != nil {
 			p.logger.ErrorContext(ctx, "failed to get categories", err)
-			return err
+			errChan <- err
+			return
 		}
 
 		subcategories, err := p.subcategoriesRepo.FindAll(ctx, input.userID)
 		if err != nil {
 			p.logger.ErrorContext(ctx, "failed to get subcategories", err)
-			return err
+			errChan <- err
+			return
 		}
 
 		// Build CategoryInfo list
@@ -191,15 +190,23 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 		prompt := NewCategoryClassificationPrompt(catInfos, transcriprionText, user.LanguageCode.String())
 		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, CategoryClassificationSystemMessage, prompt)
 		if err != nil {
-			return err
+			p.logger.ErrorContext(ctx, "failed to get categories", err)
+			errChan <- err
+			return
 		}
 
 		resp = utils.CleanMarkdownJSON(resp)
-		return json.Unmarshal([]byte(resp), &categoryResult)
-	})
+		if err := json.Unmarshal([]byte(resp), &categoryResult); err != nil {
+			p.logger.ErrorContext(ctx, "failed to parse categories", err)
+			errChan <- err
+			return
+		}
+	}()
 
 	// 2. Details Extraction
-	g.Go(func() error {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		userPayment := UserPayment{
 			Language:    user.LanguageCode.String(),
 			Currency:    user.CurrencyCode.String(),
@@ -217,35 +224,51 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 		prompt := NewTransactionDetailsPrompt(userPayment)
 		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, TransactionDetailsSystemMessage, prompt)
 		if err != nil {
-			return err
+			p.logger.ErrorContext(ctx, "failed to get details", err)
+			errChan <- err
+			return
 		}
 
 		resp = utils.CleanMarkdownJSON(resp)
-		return json.Unmarshal([]byte(resp), &detailsResult)
-	})
+		if err := json.Unmarshal([]byte(resp), &detailsResult); err != nil {
+			p.logger.ErrorContext(ctx, "failed to parse details", err)
+			errChan <- err
+			return
+		}
+	}()
 
-	if err := g.Wait(); err != nil {
-		p.logger.ErrorContext(ctx, "failed to parse audio parallel", err)
-		return nil, err
+	wg.Wait()
+	if len(errChan) > 0 {
+		return nil, <-errChan
 	}
 
 	// Merge results
-	detailsResult.CategoryID = pointer.Int(categoryResult.CategoryID)
-	detailsResult.Confidence = (detailsResult.Confidence + categoryResult.Confidence) / 2
+	var result = &ParseAudioView{
+		Type:          detailsResult.Type,
+		AccountID:     detailsResult.AccountID,
+		Note:          detailsResult.Note,
+		PerformedAt:   detailsResult.PerformedAt,
+		CategoryID:    categoryResult.CategoryID,
+		SubcategoryID: categoryResult.SubcategoryID,
+		Confidence:    (detailsResult.Confidence + categoryResult.Confidence) / 2,
+	}
 
-	if detailsResult.OriginalCurrency != nil {
-		fxRate, err := p.fxRatesProvider.GetRate(ctx, *detailsResult.OriginalCurrency, user.CurrencyCode.String())
+	if detailsResult.Currency != user.CurrencyCode.String() {
+		fxRate, err := p.fxRatesProvider.GetRate(ctx, detailsResult.Currency, user.CurrencyCode.String())
 		if err != nil {
 			p.logger.ErrorContext(ctx, "failed to get fx rate", err)
 			return nil, err
 		}
-		detailsResult.OriginalAmount = pointer.Float64(detailsResult.Amount)
-		detailsResult.Currency = user.CurrencyCode.String()
-		detailsResult.Amount = detailsResult.Amount * fxRate
-		detailsResult.FxRate = pointer.Float64(fxRate)
+
+		result.Amount = detailsResult.Amount * fxRate
+		result.Currency = user.CurrencyCode.String()
+		result.OriginalAmount = pointer.Float64(detailsResult.Amount)
+		result.OriginalCurrency = pointer.String(detailsResult.Currency)
+		result.FxRate = pointer.Float64(fxRate)
 	} else {
-		detailsResult.Currency = user.CurrencyCode.String()
+		result.Amount = detailsResult.Amount
+		result.Currency = user.CurrencyCode.String()
 	}
 
-	return &detailsResult, nil
+	return result, nil
 }

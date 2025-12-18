@@ -53,18 +53,18 @@ func NewParseTextUsecase(
 }
 
 type ParseTextView struct {
+	AccountID        *string    `json:"account_id,omitempty"`
 	Type             string     `json:"type"`
 	Amount           float64    `json:"amount"`
 	Currency         string     `json:"currency,omitempty"`
 	OriginalAmount   *float64   `json:"original_amount,omitempty"`
 	OriginalCurrency *string    `json:"original_currency,omitempty"`
 	FxRate           *float64   `json:"fx_rate,omitempty"`
-	AccountID        *string    `json:"account_id,omitempty"`
 	CategoryID       *int       `json:"category_id,omitempty"`
 	SubcategoryID    *int       `json:"subcategory_id,omitempty"`
 	Note             string     `json:"note,omitempty"`
-	Confidence       float64    `json:"confidence"`
 	PerformedAt      *time.Time `json:"performed_at,omitempty"`
+	Confidence       float64    `json:"confidence"`
 }
 
 type TransactionDetailsResult struct {

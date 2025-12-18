@@ -50,14 +50,14 @@ func NewCreateTransactionUsecase(
 type CreateTransactionCommand struct {
 	UserID               string
 	AccountID            string
-	CategoryID           *int
-	SubcategoryID        *int
 	Type                 string
 	Amount               float64
 	CurrencyCode         string
 	OriginalAmount       *float64
 	OriginalCurrencyCode *string
 	FxRate               *float64
+	CategoryID           *int
+	SubcategoryID        *int
 	Note                 string
 	PerformedAt          *time.Time
 }
