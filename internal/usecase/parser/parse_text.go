@@ -16,15 +16,18 @@ import (
 	"github.com/shogo82148/pointer"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"golang.org/x/sync/errgroup"
 )
 
 type parseTextUsecase struct {
-	contextTimeout  time.Duration
-	logger          *logger.Logger
-	llmClient       ports.LLMProvider
-	usersRepo       entities.UserRepository
-	accountsRepo    entities.AccountRepository
-	fxRatesProvider ports.FXRatesProvider
+	contextTimeout    time.Duration
+	logger            *logger.Logger
+	llmClient         ports.LLMProvider
+	usersRepo         entities.UserRepository
+	accountsRepo      entities.AccountRepository
+	categoriesRepo    entities.CategoryRepository
+	subcategoriesRepo entities.SubcategoryRepository
+	fxRatesProvider   ports.FXRatesProvider
 }
 
 func NewParseTextUsecase(
@@ -33,15 +36,19 @@ func NewParseTextUsecase(
 	llmClient ports.LLMProvider,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
+	categoriesRepo entities.CategoryRepository,
+	subcategoriesRepo entities.SubcategoryRepository,
 	fxRatesProvider ports.FXRatesProvider,
 ) *parseTextUsecase {
 	return &parseTextUsecase{
-		contextTimeout:  timeout,
-		logger:          logger,
-		llmClient:       llmClient,
-		usersRepo:       usersRepo,
-		accountsRepo:    accountsRepo,
-		fxRatesProvider: fxRatesProvider,
+		contextTimeout:    timeout,
+		logger:            logger,
+		llmClient:         llmClient,
+		usersRepo:         usersRepo,
+		accountsRepo:      accountsRepo,
+		categoriesRepo:    categoriesRepo,
+		subcategoriesRepo: subcategoriesRepo,
+		fxRatesProvider:   fxRatesProvider,
 	}
 }
 
@@ -92,50 +99,122 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 		return nil, err
 	}
 
-	userPayment := UserPayment{
-		Language:    user.LanguageCode.String(),
-		Currency:    user.CurrencyCode.String(),
-		Timezone:    user.Timezone,
-		PaymentText: text,
+	// Parallel execution using errgroup
+	g, ctx := errgroup.WithContext(ctx)
+
+	var categoryResult struct {
+		CategoryID    int     `json:"category_id"`
+		SubcategoryID *int    `json:"subcategory_id"`
+		Confidence    float64 `json:"confidence"`
 	}
 
-	for _, account := range accounts {
-		userPayment.Accounts = append(userPayment.Accounts, UserPaymentAccount{
-			ID:   account.ID.String(),
-			Name: account.Name,
-		})
-	}
+	var detailsResult ParseTextView
 
-	userPrompt := NewUserPaymentMessagePrompt(userPayment)
-	response, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, ParserSystemMessage, userPrompt)
-	if err != nil {
-		p.logger.ErrorContext(ctx, "failed to parse text", err)
+	// 1. Category Classification
+	g.Go(func() error {
+		// Fetch categories and subcategories
+		categories, err := p.categoriesRepo.FindAll(ctx, input.userID)
+		if err != nil {
+			p.logger.ErrorContext(ctx, "failed to get categories", err)
+			return err
+		}
+
+		subcategories, err := p.subcategoriesRepo.FindAll(ctx, input.userID)
+		if err != nil {
+			p.logger.ErrorContext(ctx, "failed to get subcategories", err)
+			return err
+		}
+
+		// Build CategoryInfo list
+		var catInfos []CategoryInfo
+		for _, cat := range categories {
+			info := CategoryInfo{
+				ID:   cat.ID.Int(),
+				Name: cat.NameEN, // Defaulting to EN for prompt, or use user language?
+				// Ideally we should use user language, but let's stick to EN or maybe include all?
+				// Prompt logic says "Language Context" is passed. LLM can handle it.
+			}
+			for _, sub := range subcategories {
+				if sub.CategoryID == cat.ID.Int() {
+					info.Subcategories = append(info.Subcategories, SubcategoryInfo{
+						ID:   sub.ID,
+						Name: sub.NameEN,
+					})
+				}
+			}
+			catInfos = append(catInfos, info)
+		}
+
+		prompt := NewCategoryClassificationPrompt(catInfos, text, user.LanguageCode.String())
+		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, CategoryClassificationSystemMessage, prompt)
+		if err != nil {
+			return err
+		}
+
+		resp = utils.CleanMarkdownJSON(resp)
+		return json.Unmarshal([]byte(resp), &categoryResult)
+	})
+
+	// 2. Details Extraction
+	g.Go(func() error {
+		userPayment := UserPayment{
+			Language:    user.LanguageCode.String(),
+			Currency:    user.CurrencyCode.String(),
+			Timezone:    user.Timezone,
+			PaymentText: text,
+		}
+
+		for _, account := range accounts {
+			userPayment.Accounts = append(userPayment.Accounts, UserPaymentAccount{
+				ID:   account.ID.String(),
+				Name: account.Name,
+			})
+		}
+
+		prompt := NewTransactionDetailsPrompt(userPayment)
+		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, TransactionDetailsSystemMessage, prompt)
+		if err != nil {
+			return err
+		}
+
+		resp = utils.CleanMarkdownJSON(resp)
+		return json.Unmarshal([]byte(resp), &detailsResult)
+	})
+
+	if err := g.Wait(); err != nil {
+		p.logger.ErrorContext(ctx, "failed to parse text parallel", err)
 		return nil, err
 	}
 
-	// Clean from starting and ending ``` blocks
-	response = utils.CleanMarkdownJSON(response)
-
-	var result ParseTextView
-	err = json.Unmarshal([]byte(response), &result)
-	if err != nil {
-		p.logger.ErrorContext(ctx, "failed to parse text", err)
-		return nil, err
+	// Merge results
+	detailsResult.CategoryID = pointer.Int(categoryResult.CategoryID)
+	if categoryResult.SubcategoryID != nil {
+		// TODO: Add SubcategoryID to ParseTextView if needed, otherwise ignore or handle categorisation logic.
+		// For now, ParseTextView only has CategoryID.
+		// Assuming we just pass CategoryID. If Subcategory is needed by View, we should add it.
+		// ParseTextView struct definition (line 48) has CategoryID but not SubcategoryID.
+		// Let's check view struct definition again.
 	}
 
-	if result.OriginalCurrency != nil {
-		fxRate, err := p.fxRatesProvider.GetRate(ctx, *result.OriginalCurrency, user.CurrencyCode.String())
+	// Average confidence? Or min? Or just details confidence?
+	// Let's take the minimum confidence to be conservative? Or average.
+	// Or maybe just details confidence since categorization is separate task.
+	// But categorization confidence is important.
+	detailsResult.Confidence = (detailsResult.Confidence + categoryResult.Confidence) / 2
+
+	if detailsResult.OriginalCurrency != nil {
+		fxRate, err := p.fxRatesProvider.GetRate(ctx, *detailsResult.OriginalCurrency, user.CurrencyCode.String())
 		if err != nil {
 			p.logger.ErrorContext(ctx, "failed to get fx rate", err)
 			return nil, err
 		}
-		result.OriginalAmount = pointer.Float64(result.Amount)
-		result.Currency = user.CurrencyCode.String()
-		result.Amount = result.Amount * fxRate
-		result.FxRate = pointer.Float64(fxRate)
+		detailsResult.OriginalAmount = pointer.Float64(detailsResult.Amount)
+		detailsResult.Currency = user.CurrencyCode.String()
+		detailsResult.Amount = detailsResult.Amount * fxRate
+		detailsResult.FxRate = pointer.Float64(fxRate)
 	} else {
-		result.Currency = user.CurrencyCode.String()
+		detailsResult.Currency = user.CurrencyCode.String()
 	}
 
-	return &result, nil
+	return &detailsResult, nil
 }

@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+type CategoryInfo struct {
+	ID            int
+	Name          string
+	Subcategories []SubcategoryInfo
+}
+
+type SubcategoryInfo struct {
+	ID   int
+	Name string
+}
+
 type UserPaymentAccount struct {
 	ID   string
 	Name string
@@ -18,55 +29,237 @@ type UserPayment struct {
 	PaymentText string
 }
 
-func NewUserPaymentMessagePrompt(paymentText UserPayment) string {
-	accounts := ""
-	for i, acc := range paymentText.Accounts {
-		accounts += "- " + acc.ID + " → " + acc.Name
-		if i >= len(paymentText.Accounts)-1 {
-			accounts += "\n"
-		}
-	}
+const CategoryClassificationSystemMessage = `
+You are a deterministic financial transaction category classifier used in a personal finance app.
 
-	payment := fmt.Sprintf(`
-USER CONTEXT:
-- Language: %s
-- Currency: %s
-- Timezone: %s
-- Accounts:
-   %s
-- Current datetime (UTC): %s
+TASK
+Given a short transaction text (possibly noisy, multilingual, slang), choose the single best category_id and (optionally) subcategory_id.
 
-TRANSACTION TEXT:
-%s
+INPUT 
+1) AVAILABLE CATEGORIES & SUBCATEGORIES:
+- Category ID <number>: <string>
+  - Subcategory ID <number>: <string>
 
-Generate valid JSON, nothing else.
-`, paymentText.Language, paymentText.Currency, paymentText.Timezone, accounts, time.Now().UTC().Format(time.RFC3339), paymentText.PaymentText)
+2) INPUT TEXT:
+<TEXT>
 
-	return payment
+
+OUTPUT (STRICT)
+Return ONLY valid JSON. No markdown. No extra keys. No explanations.
+
+JSON SCHEMA
+{
+	"category_id": number,
+	"subcategory_id": number|null,
+	"confidence": number
 }
 
-func NewUserReceiptMessagePrompt(receiptText UserPayment) string {
-	accounts := ""
-	for i, acc := range receiptText.Accounts {
-		accounts += "- " + acc.ID + " → " + acc.Name
-		if (i + 1) > (len(receiptText.Accounts) - 1) {
-			accounts += "\n"
+FIELD RULES
+1) category_id:
+	- must be one of the provided categories.
+2) subcategory_id:
+	- must be one of the provided subcategories of the chosen category, otherwise null.
+3) confidence:
+	- must be a floating point number between 0 and 1.
+`
+
+func NewCategoryClassificationPrompt(categories []CategoryInfo, text string, language string) string {
+	cats := ""
+	for _, c := range categories {
+		cats += fmt.Sprintf("- Category ID %d: %s\n", c.ID, c.Name)
+		for _, s := range c.Subcategories {
+			cats += fmt.Sprintf("  - Subcategory ID %d: %s\n", s.ID, s.Name)
 		}
 	}
 
-	receipt := fmt.Sprintf(`
+	return fmt.Sprintf(`
+AVAILABLE CATEGORIES & SUBCATEGORIES:
+%s
+
+INPUT TEXT:
+%s
+`, cats, text)
+}
+
+const TransactionDetailsSystemMessage = `
+You are a deterministic financial transaction parsing engine.
+
+TASK
+Extract exactly ONE transaction from the given text using the provided user context.
+
+OUTPUT (STRICT)
+Return ONLY valid JSON. No markdown. No commentary. No extra keys.
+
+JSON SCHEMA (must match exactly; include all keys)
+{
+  "type": "deposit"|"withdrawal",
+  "amount": number,
+  "currency": string,
+  "account_id": string|null,
+  "performed_at": string|null,
+  "note": string,
+  "confidence": number
+}
+
+FIELD RULES
+1) type:
+- "deposit" for income/received/salary/refund/incoming
+- "withdrawal" for paid/bought/spent/fee/tax/subscription/outgoing
+- If unclear, choose the most conservative interpretation and lower confidence.
+
+2) amount:
+- Positive float number.
+- Extract the primary amount from the text.
+- Support shorthand: "k"=thousand, "m"=million if present in input language patterns.
+- Ignore currency symbols/words in amount extraction.
+
+3) currency:
+- MUST be ISO 4217 code.
+- If the text explicitly mentions a currency, set currency to that.
+- Otherwise use Default Currency from context.
+
+4) account_id:
+- Set ONLY if the user explicitly mentions an account name/alias that clearly matches one of the provided accounts.
+- If not explicitly mentioned or ambiguous -> null.
+- NEVER guess a default account.
+
+5) performed_at:
+- ISO-8601 string in UTC if a date/time is mentioned or relative time exists (today/yesterday/etc).
+- Use provided "Current Time" and "Timezone" to resolve relative references.
+- If no time reference -> null.
+
+6) note:
+- Same language as the input.
+- Short, meaningful purpose/merchant.
+- If receipt-like summary: include merchant + 2–4 key items if clearly present.
+
+7) confidence:
+- Reflect overall clarity (type + amount + currency + time + account).
+- Lower confidence if any major field is inferred/ambiguous.
+
+EXAMPLES (STYLE, STRUCTURE & BEHAVIOR REFERENCE ONLY)
+
+Example 1 — Account explicitly mentioned
+
 USER CONTEXT:
-- Language: %s
-- Currency: %s
+- Language: UZ
+- Currency: UZS
 - Accounts:
-   %s
-- Current datetime: %s
+  - 15372648-53b3-4415-897e-fb0998798807 → Assosy
+  - e215c04d-36d7-481d-9783-2d023eb9f52f → Main Card
+- Current datetime: 2025-12-14T19:26:00Z
+
+TRANSACTION TEXT:
+Assosy kartadan 755k бензин
+
+OUTPUT:
+{ 
+  "type":"withdrawal",
+  "amount":755000, 
+  "currency":"UZS", 
+  "account_id":"15372648-53b3-4415-897e-fb0998798807",
+  "note":"Benzin",
+  "confidence":0.93,
+  "performed_at":null
+}
+
+
+Example 2 — Currency explicitly different from user currency
+
+USER CONTEXT:
+- Language: EN
+- Currency: UZS
+- Accounts:
+  - e215c04d-36d7-481d-9783-2d023eb9f52f → Main Card
+- Current datetime: 2025-12-10T10:00:00Z
+
+TRANSACTION TEXT:
+Paid hosting 50.67 USD
+
+OUTPUT:
+{
+  "type":"withdrawal",
+  "amount":50.67,
+  "currency":"USD",
+  "account_id":null,
+  "note":"Hosting payment",
+  "confidence":0.92,
+  "performed_at":null
+}
+
+
+Example 3 — No account, no currency override
+
+USER CONTEXT:
+- Language: UZ
+- Job title: Truck Driver
+- Currency: UZS
+- Accounts:
+  - 15372648-53b3-4415-897e-fb0998798807 → Assosy
+- Current datetime: 2025-12-14T19:26:00Z
+
+TRANSACTION TEXT:
+755k сум бензин
+
+OUTPUT:
+{
+  "type":"withdrawal",
+  "amount":755000,
+  "currency":"UZS",
+  "account_id":null,
+  "note":"Benzin",
+  "confidence":0.90,
+  "performed_at":null
+}
+
+
+Example 4 — Receipt with store name, no account mentioned
+
+USER CONTEXT:
+- Language: RU
+- Job title: Office Worker
+- Currency: UZS
+- Accounts:
+  - e215c04d-36d7-481d-9783-2d023eb9f52f → Main Card
+- Current datetime: 2025-12-12T14:10:00Z
 
 RECEIPT TEXT:
-%s
-`, receiptText.Language, receiptText.Currency, accounts, time.Now().UTC().Format(time.RFC3339), receiptText.PaymentText)
+MAGNUM
+Milk 12000.00
+Bread 6000.60
+TOTAL 18000.60
 
-	return receipt
+OUTPUT:
+{
+  "type":"withdrawal",
+  "amount":18000,
+  "currency":"UZS",
+  "account_id":null,
+  "note":"Magnum: milk, bread",
+  "confidence":0.94,
+  "performed_at":null
+}
+
+`
+
+func NewTransactionDetailsPrompt(payment UserPayment) string {
+	accounts := ""
+	for _, acc := range payment.Accounts {
+		accounts += fmt.Sprintf("- ID %s: %s\n", acc.ID, acc.Name)
+	}
+
+	return fmt.Sprintf(`
+USER CONTEXT
+- Language: %s
+- Default Currency: %s
+- Timezone: %s
+- Current Time (UTC): %s
+- Accounts:
+%s
+
+INPUT TEXT
+%s
+`, payment.Language, payment.Currency, payment.Timezone, time.Now().UTC().Format(time.RFC3339), accounts, payment.PaymentText)
 }
 
 func NewOcrParserMessagePrompt(ocr_text string) string {
@@ -88,194 +281,3 @@ Now clean and rewrite this receipt:
 %s
 `, ocr_text)
 }
-
-const ParserSystemMessage = `
-You are an enterprise-grade Financial Transaction Parsing Engine used in a consumer finance application (mobile + chatbot).
-Your task is to reliably convert messy, real-world human text into clean, machine-readable transaction data.
-
-You must behave deterministically, conservatively, and consistently.
-If information is ambiguous, you must lower confidence or return null — never guess.
-
----
-
-GOAL
-Parse a single natural-language input describing a financial event and return a STRICTLY VALID JSON object that represents exactly ONE transaction.
-
-The transaction can be either:
-- money coming IN → "deposit"
-- money going OUT → "withdrawal"
-
----
-
-AVAILABLE CATEGORIES (use ONLY these IDs)
-1  Food & Dining
-2  Transport
-3  Groceries
-4  Shopping
-5  Entertainment
-6  Health & Medical
-7  Housing
-8  Utilities
-9  Education
-10 Personal Care
-11 Travel
-12 Gifts & Donations
-13 Insurance
-14 Investments
-15 Salary
-16 Freelance
-17 Business Income
-18 Refunds
-19 Fees & Charges
-20 Subscriptions
-21 Pets
-22 Sports & Fitness
-23 Bills
-24 Taxes
-25 Other
-
----
-
-STRICT OUTPUT RULES (ABSOLUTELY CRITICAL)
-1. Output MUST be valid JSON — no markdown, no comments, no explanations, no extra text.
-2. The JSON MUST contain exactly these fields:
-   - type
-   - amount
-   - category_id
-   - note
-   - confidence
-   - performed_at
-3. "type" must be EXACTLY one of:
-   - "deposit"
-   - "withdrawal"
-4. "amount":
-   - MUST be a positive number
-   - Extract ONLY the main numeric value from the text
-   - Ignore currency symbols or words
-5. "category_id":
-   - MUST match one of the IDs above
-   - Use null if the category is unclear or ambiguous
-6. "confidence":
-   - Float between 0.0 and 1.0
-   - Reflect clarity of amount + category + intent
-7. "performed_at":
-   - If a date or time is mentioned → return ISO-8601 (UTC)
-   - If no time reference exists → null
-8. "note":
-   - MUST be in the SAME LANGUAGE as the input
-   - Keep it short, human-friendly, and meaningful
-   - If input is a receipt summary:
-     - Include place name if present
-     - Add 1–2 key items or purpose
-11. "account_id":
-    - MUST be one of the provided account IDs from user context
-    - Set ONLY if the user explicitly mentions an account name or clear synonym
-    - If not explicitly mentioned → null
-    - NEVER guess or auto-select a default account
-
-12. "original_currency":
-    - Set ONLY if the user explicitly mentions a currency different from the user's default currency
-    - Use ISO 4217 currency codes (e.g., USD, EUR, RUB)
-    - If currency is not mentioned or matches user's currency → null
-
-13. NEVER infer a date, category, or intent if not implied.
-14. NEVER return multiple transactions.
-15. User context (language, job, currency, accounts, datetime) may be provided in the input. Use it ONLY to improve parsing accuracy. NEVER include it in the output JSON.
-
----
-
-INTENT DETECTION RULES
-- Words like "got", "received", "salary", "income", "refund" → deposit
-- Words like "paid", "bought", "spent", "fee", "tax", "subscription" → withdrawal
-- If intent is unclear → choose the most conservative interpretation and reduce confidence
-
----
-
-RESPONSE FORMAT (RETURN ONLY THIS JSON STRUCTURE)
-{
-  "type": "deposit | withdrawal",
-  "amount": 0,
-  "category_id": 1,
-  "account_id": null,
-  "original_currency": null,
-  "note": "string",
-  "confidence": 0.0,
-  "performed_at": null
-}
-
----
-EXAMPLES (STYLE, STRUCTURE & BEHAVIOR REFERENCE ONLY)
-
-Example 1 — Account explicitly mentioned
-
-USER CONTEXT:
-- Language: UZ
-- Job title: Truck Driver
-- Currency: UZS
-- Accounts:
-  - 15372648-53b3-4415-897e-fb0998798807 → Assosy
-  - e215c04d-36d7-481d-9783-2d023eb9f52f → Uzum Card
-- Current datetime: 2025-12-14T19:26:00Z
-
-TRANSACTION TEXT:
-Assosy kartadan 755k бензин
-
-OUTPUT:
-{"type":"withdrawal","amount":755000,"category_id":2,"account_id":"15372648-53b3-4415-897e-fb0998798807","original_currency":null,"note":"Benzin","confidence":0.93,"performed_at":null}
-
-
-Example 2 — Currency explicitly different from user currency
-
-USER CONTEXT:
-- Language: EN
-- Job title: Freelancer
-- Currency: UZS
-- Accounts:
-  - e215c04d-36d7-481d-9783-2d023eb9f52f → Main Card
-- Current datetime: 2025-12-10T10:00:00Z
-
-TRANSACTION TEXT:
-Paid hosting 50$
-
-OUTPUT:
-{"type":"withdrawal","amount":50,"category_id":20,"account_id":null,"original_currency":"USD","note":"Hosting payment","confidence":0.92,"performed_at":null}
-
-
-Example 3 — No account, no currency override
-
-USER CONTEXT:
-- Language: UZ
-- Job title: Truck Driver
-- Currency: UZS
-- Accounts:
-  - 15372648-53b3-4415-897e-fb0998798807 → Assosy
-- Current datetime: 2025-12-14T19:26:00Z
-
-TRANSACTION TEXT:
-755k бензин
-
-OUTPUT:
-{"type":"withdrawal","amount":755000,"category_id":2,"account_id":null,"original_currency":null,"note":"Benzin","confidence":0.90,"performed_at":null}
-
-
-Example 4 — Receipt with store name, no account mentioned
-
-USER CONTEXT:
-- Language: RU
-- Job title: Office Worker
-- Currency: UZS
-- Accounts:
-  - e215c04d-36d7-481d-9783-2d023eb9f52f → Main Card
-- Current datetime: 2025-12-12T14:10:00Z
-
-RECEIPT TEXT:
-MAGNUM
-Milk 12000
-Bread 6000
-TOTAL 18000
-
-OUTPUT:
-{"type":"withdrawal","amount":18000,"category_id":3,"account_id":null,"original_currency":null,"note":"Magnum: milk, bread","confidence":0.94,"performed_at":null}
-
-
-`
