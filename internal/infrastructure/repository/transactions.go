@@ -55,6 +55,7 @@ func (r *transactionsRepo) Save(ctx context.Context, transaction *entities.Trans
 		Set("user_id = EXCLUDED.user_id").
 		Set("account_id = EXCLUDED.account_id").
 		Set("category_id = EXCLUDED.category_id").
+		Set("subcategory_id = EXCLUDED.subcategory_id").
 		Set("type = EXCLUDED.type").
 		Set("status = EXCLUDED.status").
 		Set("amount = EXCLUDED.amount").

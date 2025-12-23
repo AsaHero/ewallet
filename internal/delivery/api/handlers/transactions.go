@@ -60,8 +60,6 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 		ID:                   trn.ID.String(),
 		UserID:               trn.UserID.String(),
 		AccountID:            trn.AccountID.String(),
-		CategoryID:           pointer.IntOrNil(trn.Category.ID.Int()),
-		SubcategoryID:        pointer.IntOrNil(trn.Subcategory.ID),
 		Type:                 trn.Type.String(),
 		Status:               trn.Status.String(),
 		Amount:               trn.AmountMajor(),
@@ -73,6 +71,14 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 		PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
 		RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
 		CreatedAt:            trn.CreatedAt,
+	}
+
+	if trn.Category != nil {
+		transaction.CategoryID = pointer.IntOrNil(trn.Category.ID.Int())
+	}
+
+	if trn.Subcategory != nil {
+		transaction.SubcategoryID = pointer.IntOrNil(trn.Subcategory.ID)
 	}
 
 	c.JSON(http.StatusCreated, transaction)
@@ -128,12 +134,10 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 	}
 
 	for _, trn := range transactions {
-		resp.Items = append(resp.Items, models.Transaction{
+		item := models.Transaction{
 			ID:                   trn.ID.String(),
 			UserID:               trn.UserID.String(),
 			AccountID:            trn.AccountID.String(),
-			CategoryID:           pointer.IntOrNil(trn.Category.ID.Int()),
-			SubcategoryID:        pointer.IntOrNil(trn.Subcategory.ID),
 			Type:                 trn.Type.String(),
 			Status:               trn.Status.String(),
 			Amount:               trn.AmountMajor(),
@@ -145,7 +149,17 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 			PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
 			RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
 			CreatedAt:            trn.CreatedAt,
-		})
+		}
+
+		if trn.Category != nil {
+			item.CategoryID = pointer.IntOrNil(trn.Category.ID.Int())
+		}
+
+		if trn.Subcategory != nil {
+			item.SubcategoryID = pointer.IntOrNil(trn.Subcategory.ID)
+		}
+
+		resp.Items = append(resp.Items, item)
 	}
 
 	c.JSON(http.StatusOK, resp)
@@ -198,6 +212,14 @@ func (h *Handlers) GetTransaction(c *gin.Context) {
 		PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
 		RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
 		CreatedAt:            trn.CreatedAt,
+	}
+
+	if trn.Category != nil {
+		transaction.CategoryID = pointer.IntOrNil(trn.Category.ID.Int())
+	}
+
+	if trn.Subcategory != nil {
+		transaction.SubcategoryID = pointer.IntOrNil(trn.Subcategory.ID)
 	}
 
 	c.JSON(http.StatusOK, transaction)
@@ -296,8 +318,6 @@ func (h *Handlers) UpdateTransaction(c *gin.Context) {
 		ID:                   trn.ID.String(),
 		UserID:               trn.UserID.String(),
 		AccountID:            trn.AccountID.String(),
-		CategoryID:           pointer.IntOrNil(trn.Category.ID.Int()),
-		SubcategoryID:        pointer.IntOrNil(trn.Subcategory.ID),
 		Type:                 trn.Type.String(),
 		Status:               trn.Status.String(),
 		Amount:               trn.AmountMajor(),
@@ -309,6 +329,14 @@ func (h *Handlers) UpdateTransaction(c *gin.Context) {
 		PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
 		RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
 		CreatedAt:            trn.CreatedAt,
+	}
+
+	if trn.Category != nil {
+		transaction.CategoryID = pointer.IntOrNil(trn.Category.ID.Int())
+	}
+
+	if trn.Subcategory != nil {
+		transaction.SubcategoryID = pointer.IntOrNil(trn.Subcategory.ID)
 	}
 
 	c.JSON(http.StatusOK, transaction)

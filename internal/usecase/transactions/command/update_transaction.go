@@ -48,6 +48,7 @@ func NewUpdateTransactionUsecase(
 }
 
 type UpdateTransactionCommand struct {
+	AccountID            string
 	UserID               string
 	TransactionID        string
 	CategoryID           *int
@@ -72,24 +73,33 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 	)
 	defer func() { end(err) }()
 
-	userID, err := uuid.Parse(cmd.UserID)
-	if err != nil {
-		c.logger.ErrorContext(ctx, "failed to parse user id", err)
-		return nil, inerr.NewErrValidation("user_id", "invalid uuid type")
-	}
-
-	transactionID, err := uuid.Parse(cmd.TransactionID)
-	if err != nil {
-		c.logger.ErrorContext(ctx, "failed to parse transaction id", err)
-		return nil, inerr.NewErrValidation("transaction_id", "invalid uuid type")
-	}
-
 	var input struct {
-		category    *entities.Category
-		subcategory *entities.Subcategory
-		trnType     entities.TrnType
+		accountID     uuid.UUID
+		userID        uuid.UUID
+		transactionID uuid.UUID
+		category      *entities.Category
+		subcategory   *entities.Subcategory
+		trnType       entities.TrnType
 	}
 	{
+
+		input.accountID, err = uuid.Parse(cmd.AccountID)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to parse account id", err)
+			return nil, inerr.NewErrValidation("account_id", "invalid uuid type")
+		}
+
+		input.userID, err = uuid.Parse(cmd.UserID)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to parse user id", err)
+			return nil, inerr.NewErrValidation("user_id", "invalid uuid type")
+		}
+
+		input.transactionID, err = uuid.Parse(cmd.TransactionID)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to parse transaction id", err)
+			return nil, inerr.NewErrValidation("transaction_id", "invalid uuid type")
+		}
 		if cmd.CategoryID != nil {
 			category, err := c.categoryRepo.FindByID(ctx, *cmd.CategoryID)
 			if err != nil {
@@ -117,7 +127,7 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 		}
 	}
 
-	user, err := c.usersRepo.FindByID(ctx, userID)
+	user, err := c.usersRepo.FindByID(ctx, input.userID)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to get user", err)
 		return nil, err
@@ -126,7 +136,7 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 	var transaction *entities.Transaction
 	err = c.txManager.WithTx(ctx, func(ctx context.Context) error {
 		// 1. Get existing transaction
-		transaction, err = c.transactionsRepo.GetByID(ctx, transactionID)
+		transaction, err = c.transactionsRepo.GetByID(ctx, input.transactionID)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to get transaction", err)
 			return err
@@ -136,7 +146,7 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 			return inerr.NewErrNotFound("transaction")
 		}
 
-		if transaction.UserID != userID {
+		if transaction.UserID != input.userID {
 			return inerr.NewErrNotFound("transaction")
 		}
 
@@ -153,9 +163,15 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 			return err
 		}
 
-		// 3. Update transaction fields
+		err = c.accountsRepo.Save(ctx, account)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to save account", err)
+			return err
+		}
+
 		// 3. Update transaction fields
 		err = transaction.Update(
+			input.accountID,
 			input.category,
 			input.subcategory,
 			input.trnType,
@@ -170,6 +186,15 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to update transaction", err)
 			return err
+		}
+
+		// 4. If account is updated, then fetch updated account
+		if account.ID != transaction.AccountID {
+			account, err = c.accountsRepo.GetByIDForUpdate(ctx, input.accountID)
+			if err != nil {
+				c.logger.ErrorContext(ctx, "failed to get account", err)
+				return err
+			}
 		}
 
 		// 4. Apply new transaction to account

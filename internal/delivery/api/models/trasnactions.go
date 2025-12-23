@@ -49,6 +49,7 @@ type CreateTransactionRequest struct {
 }
 
 type UpdateTransactionRequest struct {
+	AccountID            string     `json:"account_id" binding:"required"`
 	CategoryID           *int       `json:"category_id"`
 	SubcategoryID        *int       `json:"subcategory_id"`
 	Type                 string     `json:"type" binding:"required"`

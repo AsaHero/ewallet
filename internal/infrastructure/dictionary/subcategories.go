@@ -17,7 +17,7 @@ type Subcategories struct {
 
 	ID         int        `bun:"id,pk"`
 	CategoryID int        `bun:"category_id"`
-	UserID     *string    `bun:"user_id"`
+	UserID     *string    `bun:"user_id,nullzero"`
 	Position   int        `bun:"position"`
 	NameEN     string     `bun:"name_en"`
 	NameRU     string     `bun:"name_ru"`

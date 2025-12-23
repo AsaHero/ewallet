@@ -176,6 +176,7 @@ func (t *Transaction) Performed(performedAt time.Time) {
 }
 
 func (t *Transaction) Update(
+	accountID uuid.UUID,
 	category *Category,
 	subcategory *Subcategory,
 	trnType TrnType,
@@ -189,6 +190,7 @@ func (t *Transaction) Update(
 ) error {
 	t.Type = trnType
 	t.RowText = rowText
+	t.AccountID = accountID
 
 	err := t.Categorise(category, subcategory)
 	if err != nil {
