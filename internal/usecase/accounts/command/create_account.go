@@ -82,6 +82,12 @@ func (u *CreateAccountUsecase) CreateAccount(ctx context.Context, cmd *CreateAcc
 	account.SetAmountMajor(cmd.Balance, user.CurrencyCode)
 	account.UpdateDefault(cmd.IsDefault)
 
+	err = u.accountsRepo.Save(ctx, account)
+	if err != nil {
+		u.logger.ErrorContext(ctx, "failed to save account", err)
+		return nil, err
+	}
+
 	if account.Balance > 0 {
 		otherCategory, err := u.categoryRepo.FindByID(ctx, entities.OtherCategory.Int())
 		if err != nil {
@@ -117,12 +123,6 @@ func (u *CreateAccountUsecase) CreateAccount(ctx context.Context, cmd *CreateAcc
 			u.logger.ErrorContext(ctx, "failed to save transaction", err)
 			return nil, err
 		}
-	}
-
-	err = u.accountsRepo.Save(ctx, account)
-	if err != nil {
-		u.logger.ErrorContext(ctx, "failed to save account", err)
-		return nil, err
 	}
 
 	return account, nil
