@@ -64,6 +64,7 @@ func (s *Subcategory) GetName(lang Language) string {
 
 // Repository
 type SubcategoryRepository interface {
+	Save(ctx context.Context, subcategory *Subcategory) error
 	FindAll(ctx context.Context, userID uuid.UUID) ([]*Subcategory, error)
 	FindByID(ctx context.Context, id int) (*Subcategory, error)
 	FindByCategoryID(ctx context.Context, categoryID int, userID uuid.UUID) ([]*Subcategory, error)

@@ -77,7 +77,7 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 	{
 		// Authentication (no auth required)
 		api.POST("/auth/telegram", h.AuthTelegram)
-		api.POST("/parse/image", h.ParseImage)
+
 		// Protected routes
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
@@ -95,6 +95,7 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 			// Parsers routes
 			protected.POST("/parse/text", h.ParseText)
 			protected.POST("/parse/voice", h.ParseVoice)
+			protected.POST("/parse/image", h.ParseImage)
 
 			// Transaction routes
 			protected.POST("/transactions", h.CreateTransaction)
@@ -106,6 +107,8 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 			// Category routes
 			protected.GET("/categories", h.GetCategories)
 			protected.GET("/subcategories", h.GetSubcategories)
+			protected.POST("/categories", h.CreateCategory)
+			protected.POST("/subcategories", h.CreateSubcategory)
 
 			// Stats routes
 			protected.GET("/stats/summary", h.GetStats)

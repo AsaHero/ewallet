@@ -15,7 +15,7 @@ import (
 type Categories struct {
 	bun.BaseModel `bun:"table:categories,alias:c"`
 
-	ID        int        `bun:"id,pk"`
+	ID        int        `bun:"id,pk,autoincrement"`
 	UserID    *string    `bun:"user_id"`
 	Position  int        `bun:"position"`
 	NameEN    string     `bun:"name_en"`
@@ -44,6 +44,32 @@ func NewCategoriesDict(db bun.IDB) entities.CategoryRepository {
 		BaseDictionary: postgres.NewDictionary(db, postgres.WithOrderBy[int, *Categories]("position", "asc")),
 		db:             db,
 	}
+}
+
+func (d *categoriesDict) Save(ctx context.Context, category *entities.Category) error {
+	db := postgres.FromContext(ctx, d.db)
+	model := d.ToModel(category)
+
+	var id int
+	_, err := db.NewInsert().Model(model).
+		On("CONFLICT (id) DO UPDATE").
+		Set("user_id = excluded.user_id").
+		Set("position = excluded.position").
+		Set("name_en = excluded.name_en").
+		Set("name_ru = excluded.name_ru").
+		Set("name_uz = excluded.name_uz").
+		Set("emoji = excluded.emoji").
+		Set("updated_at = excluded.updated_at").
+		Returning("id").
+		Exec(ctx, &id)
+	if err != nil {
+		return postgres.Error(err, model)
+	}
+
+	category.ID = entities.CategoryID(id)
+	d.BaseDictionary.Load(ctx)
+
+	return nil
 }
 
 func (d *categoriesDict) FindAll(ctx context.Context, userID uuid.UUID) ([]*entities.Category, error) {

@@ -32,7 +32,6 @@ type Category struct {
 
 func NewUserCategory(
 	userID uuid.UUID,
-	position int,
 	name string,
 	emoji string) (*Category, error) {
 	if userID == uuid.Nil {
@@ -44,12 +43,11 @@ func NewUserCategory(
 	}
 
 	return &Category{
-		UserID:   userID,
-		Position: position,
-		NameEN:   name,
-		NameRU:   name,
-		NameUZ:   name,
-		Emoji:    emoji,
+		UserID: userID,
+		NameEN: name,
+		NameRU: name,
+		NameUZ: name,
+		Emoji:  emoji,
 	}, nil
 }
 
@@ -68,6 +66,7 @@ func (c *Category) GetName(lang Language) string {
 
 // Repository
 type CategoryRepository interface {
+	Save(ctx context.Context, category *Category) error
 	FindAll(ctx context.Context, userID uuid.UUID) ([]*Category, error)
 	FindByID(ctx context.Context, id int) (*Category, error)
 	Delete(ctx context.Context, userID uuid.UUID, id int) error

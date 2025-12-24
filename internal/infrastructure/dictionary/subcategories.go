@@ -15,7 +15,7 @@ import (
 type Subcategories struct {
 	bun.BaseModel `bun:"table:subcategories,alias:sb"`
 
-	ID         int        `bun:"id,pk"`
+	ID         int        `bun:"id,pk,autoincrement"`
 	CategoryID int        `bun:"category_id"`
 	UserID     *string    `bun:"user_id,nullzero"`
 	Position   int        `bun:"position"`
@@ -45,6 +45,33 @@ func NewSubcategoriesDict(db bun.IDB) entities.SubcategoryRepository {
 		BaseDictionary: postgres.NewDictionary(db, postgres.WithOrderBy[int, *Subcategories]("position", "asc")),
 		db:             db,
 	}
+}
+
+func (d *subcategoriesDict) Save(ctx context.Context, subcategory *entities.Subcategory) error {
+	db := postgres.FromContext(ctx, d.db)
+	model := d.ToModel(subcategory)
+
+	var id int
+	_, err := db.NewInsert().Model(model).
+		On("CONFLICT (id) DO UPDATE").
+		Set("category_id = excluded.category_id").
+		Set("user_id = excluded.user_id").
+		Set("position = excluded.position").
+		Set("name_en = excluded.name_en").
+		Set("name_ru = excluded.name_ru").
+		Set("name_uz = excluded.name_uz").
+		Set("emoji = excluded.emoji").
+		Set("updated_at = excluded.updated_at").
+		Returning("id").
+		Exec(ctx, &id)
+	if err != nil {
+		return postgres.Error(err, model)
+	}
+
+	subcategory.ID = id
+	d.BaseDictionary.Load(ctx)
+
+	return nil
 }
 
 func (d *subcategoriesDict) FindAll(ctx context.Context, userID uuid.UUID) ([]*entities.Subcategory, error) {

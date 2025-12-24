@@ -265,6 +265,45 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Create a new category",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/command.CreateCategoryCommand"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Category"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
             }
         },
         "/parse/image": {
@@ -492,6 +531,45 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/query.Subcategory"
                             }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Create a new subcategory",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/command.CreateSubcategoryCommand"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Subcategory"
                         }
                     },
                     "401": {
@@ -829,6 +907,37 @@ const docTemplate = `{
                 }
             }
         },
+        "command.CreateCategoryCommand": {
+            "type": "object",
+            "properties": {
+                "emoji": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "command.CreateSubcategoryCommand": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "emoji": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Account": {
             "type": "object",
             "properties": {
@@ -889,6 +998,29 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/models.User"
+                }
+            }
+        },
+        "models.Category": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "emoji": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
@@ -996,6 +1128,32 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Subcategory": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "emoji": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Transaction": {
             "type": "object",
             "properties": {
@@ -1077,10 +1235,14 @@ const docTemplate = `{
         "models.UpdateTransactionRequest": {
             "type": "object",
             "required": [
+                "account_id",
                 "amount",
                 "type"
             ],
             "properties": {
+                "account_id": {
+                    "type": "string"
+                },
                 "amount": {
                     "type": "number"
                 },
