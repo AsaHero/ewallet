@@ -12,6 +12,8 @@ import (
 type Command struct {
 	*command.CreateCategoryUsecase
 	*command.CreateSubcategoryUsecase
+	*command.DeleteCategoryUsecase
+	*command.DeleteSubcategoryUsecase
 }
 type Query struct {
 	*query.GetAllCategoriesUsecase
@@ -27,6 +29,8 @@ func NewModule(timeout time.Duration, logger *logger.Logger, categoriesRepo enti
 		Command: Command{
 			CreateCategoryUsecase:    command.NewCreateCategoryUsecase(timeout, logger, usersRepo, categoriesRepo),
 			CreateSubcategoryUsecase: command.NewCreateSubcategoryUsecase(timeout, logger, usersRepo, subcategoriesRepo),
+			DeleteCategoryUsecase:    command.NewDeleteCategoryUsecase(timeout, logger, usersRepo, categoriesRepo),
+			DeleteSubcategoryUsecase: command.NewDeleteSubcategoryUsecase(timeout, logger, usersRepo, subcategoriesRepo),
 		},
 		Query: Query{
 			GetAllCategoriesUsecase:    query.NewGetAllCategoriesUsecase(timeout, logger, usersRepo, categoriesRepo),

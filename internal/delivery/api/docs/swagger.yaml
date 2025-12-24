@@ -8,26 +8,6 @@ definitions:
       message:
         type: string
     type: object
-  command.CreateCategoryCommand:
-    properties:
-      emoji:
-        type: string
-      name:
-        type: string
-      user_id:
-        type: string
-    type: object
-  command.CreateSubcategoryCommand:
-    properties:
-      category_id:
-        type: integer
-      emoji:
-        type: string
-      name:
-        type: string
-      user_id:
-        type: string
-    type: object
   models.Account:
     properties:
       balance:
@@ -94,6 +74,22 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  models.CreateCategoryRequest:
+    properties:
+      emoji:
+        type: string
+      name:
+        type: string
+    type: object
+  models.CreateSubcategoryRequest:
+    properties:
+      category_id:
+        type: integer
+      emoji:
+        type: string
+      name:
+        type: string
     type: object
   models.CreateTransactionRequest:
     properties:
@@ -590,7 +586,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/command.CreateCategoryCommand'
+          $ref: '#/definitions/models.CreateCategoryRequest'
       produces:
       - application/json
       responses:
@@ -605,6 +601,32 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a new category
+      tags:
+      - Categories
+  /categories/{id}:
+    delete:
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a category
       tags:
       - Categories
   /parse/image:
@@ -761,7 +783,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/command.CreateSubcategoryCommand'
+          $ref: '#/definitions/models.CreateSubcategoryRequest'
       produces:
       - application/json
       responses:
@@ -776,6 +798,32 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a new subcategory
+      tags:
+      - Categories
+  /subcategories/{id}:
+    delete:
+      parameters:
+      - description: Subcategory ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a subcategory
       tags:
       - Categories
   /transactions:

@@ -20,3 +20,14 @@ type Subcategory struct {
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
+
+type CreateCategoryRequest struct {
+	Name  string `json:"name"`
+	Emoji string `json:"emoji"`
+}
+
+type CreateSubcategoryRequest struct {
+	CategoryID int    `json:"category_id"`
+	Name       string `json:"name"`
+	Emoji      string `json:"emoji"`
+}
