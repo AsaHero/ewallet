@@ -2,16 +2,14 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/AsaHero/e-wallet/internal/delivery/api/apierr"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/middleware"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/models"
-	"github.com/AsaHero/e-wallet/internal/entities"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions/command"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions/query"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/go-playground/form/v4"
 	"github.com/shogo82148/pointer"
 )
 
@@ -115,77 +113,18 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Limit       uint64   `form:"limit"`
-		Offset      uint64   `form:"offset"`
-		From        string   `form:"from"`
-		To          string   `form:"to"`
-		Type        string   `form:"type"`
-		CategoryIDs []int    `form:"category_ids"`
-		AccountIDs  []string `form:"account_ids"`
-		MinAmount   *int64   `form:"min_amount"`
-		MaxAmount   *int64   `form:"max_amount"`
-		Search      string   `form:"search"`
-	}
-
-	if err := c.ShouldBindQuery(&req); err != nil {
-		apierr.BadRequest(c, "invalid query params", err.Error())
+	var req query.GetByFilterQuery
+	if err := form.NewDecoder().Decode(&req, c.Request.URL.Query()); err != nil {
+		apierr.BadRequest(c, "invalid request form", err.Error())
 		return
 	}
 
-	if req.Limit == 0 {
-		req.Limit = 20
+	if err := h.Validator.Validate(&req); err != nil {
+		apierr.BadRequest(c, "invalid request form", err.Error())
+		return
 	}
 
-	q := &query.GetByFilterQuery{
-		UserID:      userID,
-		Limit:       int(req.Limit),
-		Offset:      int(req.Offset),
-		CategoryIDs: req.CategoryIDs,
-		MinAmount:   req.MinAmount,
-		MaxAmount:   req.MaxAmount,
-	}
-
-	if req.Search != "" {
-		q.Search = &req.Search
-	}
-
-	if req.Type != "" {
-		t := entities.TrnType(req.Type)
-		q.Type = &t
-	}
-
-	if req.From != "" {
-		t, err := time.Parse(time.RFC3339, req.From)
-		if err != nil {
-			apierr.BadRequest(c, "invalid from date format", err.Error())
-			return
-		}
-		q.From = &t
-	}
-
-	if req.To != "" {
-		t, err := time.Parse(time.RFC3339, req.To)
-		if err != nil {
-			apierr.BadRequest(c, "invalid to date format", err.Error())
-			return
-		}
-		q.To = &t
-	}
-
-	if len(req.AccountIDs) > 0 {
-		q.AccountIDs = make([]uuid.UUID, 0, len(req.AccountIDs))
-		for _, id := range req.AccountIDs {
-			uid, err := uuid.Parse(id)
-			if err != nil {
-				apierr.BadRequest(c, "invalid account id", err.Error())
-				return
-			}
-			q.AccountIDs = append(q.AccountIDs, uid)
-		}
-	}
-
-	transactions, total, err := h.TransactionsUsecase.Query.GetByFilter(ctx, q)
+	transactions, total, err := h.TransactionsUsecase.Query.GetByFilter(ctx, userID, &req)
 	if err != nil {
 		apierr.Handle(c, err)
 		return
