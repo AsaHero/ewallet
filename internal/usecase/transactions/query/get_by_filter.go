@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/AsaHero/e-wallet/internal/entities"
@@ -40,7 +41,7 @@ type GetByFilterQuery struct {
 	From        string   `form:"from"`
 	To          string   `form:"to"`
 	Type        string   `form:"type"`
-	CategoryIDs []int    `form:"category_ids"`
+	CategoryIDs []string `form:"category_ids"`
 	AccountIDs  []string `form:"account_ids"`
 	MinAmount   *int64   `form:"min_amount"`
 	MaxAmount   *int64   `form:"max_amount"`
@@ -122,7 +123,12 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 		if len(query.CategoryIDs) > 0 {
 			input.categoryIDs = make([]int, 0, len(query.CategoryIDs))
 			for _, id := range query.CategoryIDs {
-				input.categoryIDs = append(input.categoryIDs, id)
+				i, err := strconv.Atoi(id)
+				if err != nil {
+					u.logger.ErrorContext(ctx, "failed to parse category id", err)
+					return nil, 0, inerr.NewErrValidation("category_id", "invalid int type")
+				}
+				input.categoryIDs = append(input.categoryIDs, i)
 			}
 		}
 
