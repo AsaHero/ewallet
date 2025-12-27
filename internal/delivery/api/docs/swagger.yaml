@@ -837,6 +837,44 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: from date (ISO 8601)
+        in: query
+        name: from
+        type: string
+      - description: to date (ISO 8601)
+        in: query
+        name: to
+        type: string
+      - description: transaction type
+        in: query
+        name: type
+        type: string
+      - collectionFormat: csv
+        description: category ids
+        in: query
+        items:
+          type: integer
+        name: category_ids
+        type: array
+      - collectionFormat: csv
+        description: account ids
+        in: query
+        items:
+          type: string
+        name: account_ids
+        type: array
+      - description: min amount
+        in: query
+        name: min_amount
+        type: integer
+      - description: max amount
+        in: query
+        name: max_amount
+        type: integer
+      - description: search term
+        in: query
+        name: search
+        type: string
       produces:
       - application/json
       responses:

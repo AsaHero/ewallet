@@ -232,10 +232,24 @@ func (t *Transaction) Update(
 
 // Repository
 
+type TransactionFilter struct {
+	UserID      uuid.UUID
+	Limit       int
+	Offset      int
+	Types       []TrnType
+	AccountIDs  []uuid.UUID
+	CategoryIDs []int
+	MinAmount   *int64
+	MaxAmount   *int64
+	From        *time.Time
+	To          *time.Time
+	Search      *string
+}
+
 type TransactionRepository interface {
 	Save(ctx context.Context, transaction *Transaction) error
 	GetByID(ctx context.Context, id uuid.UUID) (*Transaction, error)
-	GetByUserID(ctx context.Context, limit, offset int, userID uuid.UUID, trnType []TrnType) ([]*Transaction, int, error)
+	GetByFilter(ctx context.Context, filter *TransactionFilter) ([]*Transaction, int, error)
 	GetByAccountID(ctx context.Context, accountID uuid.UUID) ([]*Transaction, error)
 	GetTotalByType(ctx context.Context, userID uuid.UUID, trnType TrnType, from, to *time.Time) (int64, error)
 	GetTotalByTypeAndAccount(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID, trnType TrnType, from, to *time.Time) (int64, error)

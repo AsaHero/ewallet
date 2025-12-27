@@ -102,23 +102,51 @@ func (r *transactionsRepo) GetByID(ctx context.Context, transactionID uuid.UUID)
 	return r.ToEntity(ctx, &model), nil
 }
 
-func (r *transactionsRepo) GetByUserID(ctx context.Context, limit, offset int, userID uuid.UUID, trnType []entities.TrnType) ([]*entities.Transaction, int, error) {
+func (r *transactionsRepo) GetByFilter(ctx context.Context, filter *entities.TransactionFilter) ([]*entities.Transaction, int, error) {
 	db := postgres.FromContext(ctx, r.db)
 
 	var models []Transactions
 	query := db.NewSelect().Model(&models).
-		Where("user_id = ?", userID.String()).
+		Where("user_id = ?", filter.UserID.String()).
 		Order("created_at desc")
 
-	if len(trnType) > 0 {
-		query = query.Where("type IN (?)", bun.In(trnType))
+	if len(filter.Types) > 0 {
+		query = query.Where("type IN (?)", bun.In(filter.Types))
 	}
 
-	if limit > 0 {
-		query = query.Limit(limit)
+	if len(filter.AccountIDs) > 0 {
+		query = query.Where("account_id IN (?)", bun.In(filter.AccountIDs))
 	}
-	if offset > 0 {
-		query = query.Offset(offset)
+
+	if len(filter.CategoryIDs) > 0 {
+		query = query.Where("category_id IN (?)", bun.In(filter.CategoryIDs))
+	}
+
+	if filter.MinAmount != nil {
+		query = query.Where("amount >= ?", *filter.MinAmount)
+	}
+
+	if filter.MaxAmount != nil {
+		query = query.Where("amount <= ?", *filter.MaxAmount)
+	}
+
+	if filter.From != nil {
+		query = query.Where("created_at >= ?", filter.From)
+	}
+
+	if filter.To != nil {
+		query = query.Where("created_at < ?", filter.To)
+	}
+
+	if filter.Search != nil && *filter.Search != "" {
+		query = query.Where("row_text ILIKE ?", "%"+*filter.Search+"%")
+	}
+
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
+	}
+	if filter.Offset > 0 {
+		query = query.Offset(filter.Offset)
 	}
 
 	err := query.Scan(ctx)

@@ -32,9 +32,17 @@ func NewGetByFilterUsecase(
 }
 
 type GetByFilterQuery struct {
-	UserID string
-	Limit  int
-	Offset int
+	UserID      string
+	Limit       int
+	Offset      int
+	From        *time.Time
+	To          *time.Time
+	Type        *entities.TrnType
+	CategoryIDs []int
+	AccountIDs  []uuid.UUID
+	MinAmount   *int64
+	MaxAmount   *int64
+	Search      *string
 }
 
 func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, query *GetByFilterQuery) (_ []*entities.Transaction, _ int, err error) {
@@ -46,19 +54,32 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, query *GetByFilter
 	)
 	defer func() { end(err) }()
 
-	var input struct {
-		userID uuid.UUID
+	filter := &entities.TransactionFilter{
+		Limit:       query.Limit,
+		Offset:      query.Offset,
+		CategoryIDs: query.CategoryIDs,
+		AccountIDs:  query.AccountIDs,
+		MinAmount:   query.MinAmount,
+		MaxAmount:   query.MaxAmount,
+		From:        query.From,
+		To:          query.To,
+		Search:      query.Search,
 	}
+
+	if query.Type != nil {
+		filter.Types = []entities.TrnType{*query.Type}
+	}
+
 	{
 		var err error
-		input.userID, err = uuid.Parse(query.UserID)
+		filter.UserID, err = uuid.Parse(query.UserID)
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to parse transaction id", err)
 			return nil, 0, inerr.NewErrValidation("transaction_id", "invalud uuid type")
 		}
 	}
 
-	trn, total, err := u.transactionsRepo.GetByUserID(ctx, query.Limit, query.Offset, input.userID, nil)
+	trn, total, err := u.transactionsRepo.GetByFilter(ctx, filter)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to get transaction", err)
 		return nil, 0, err

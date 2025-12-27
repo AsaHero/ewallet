@@ -2,13 +2,16 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/AsaHero/e-wallet/internal/delivery/api/apierr"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/middleware"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/models"
+	"github.com/AsaHero/e-wallet/internal/entities"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions/command"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions/query"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/shogo82148/pointer"
 )
 
@@ -89,8 +92,16 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 // @Tags         Transactions
 // @Produce      json
 // @Security     BearerAuth
-// @Param        limit  query    int false "limit"
-// @Param        offset query    int false "offset"
+// @Param        limit        query    int false "limit"
+// @Param        offset       query    int false "offset"
+// @Param        from         query    string false "from date (ISO 8601)"
+// @Param        to           query    string false "to date (ISO 8601)"
+// @Param        type         query    string false "transaction type"
+// @Param        category_ids query    []int false "category ids"
+// @Param        account_ids  query    []string false "account ids"
+// @Param        min_amount   query    int false "min amount"
+// @Param        max_amount   query    int false "max amount"
+// @Param        search       query    string false "search term"
 // @Success      200 {object} models.TransactionsResponse
 // @Failure      400 {object} apierr.Response
 // @Failure      401 {object} apierr.Response
@@ -104,21 +115,77 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	var page models.PaginationRequest
-	if err := c.ShouldBindQuery(&page); err != nil {
-		apierr.BadRequest(c, "invalid pagination params", err.Error())
+	var req struct {
+		Limit       uint64   `form:"limit"`
+		Offset      uint64   `form:"offset"`
+		From        string   `form:"from"`
+		To          string   `form:"to"`
+		Type        string   `form:"type"`
+		CategoryIDs []int    `form:"category_ids"`
+		AccountIDs  []string `form:"account_ids"`
+		MinAmount   *int64   `form:"min_amount"`
+		MaxAmount   *int64   `form:"max_amount"`
+		Search      string   `form:"search"`
+	}
+
+	if err := c.ShouldBindQuery(&req); err != nil {
+		apierr.BadRequest(c, "invalid query params", err.Error())
 		return
 	}
 
-	if page.Limit == 0 {
-		page.Limit = 20
+	if req.Limit == 0 {
+		req.Limit = 20
 	}
 
-	transactions, total, err := h.TransactionsUsecase.Query.GetByFilter(ctx, &query.GetByFilterQuery{
-		UserID: userID,
-		Limit:  int(page.Limit),
-		Offset: int(page.Offset),
-	})
+	q := &query.GetByFilterQuery{
+		UserID:      userID,
+		Limit:       int(req.Limit),
+		Offset:      int(req.Offset),
+		CategoryIDs: req.CategoryIDs,
+		MinAmount:   req.MinAmount,
+		MaxAmount:   req.MaxAmount,
+	}
+
+	if req.Search != "" {
+		q.Search = &req.Search
+	}
+
+	if req.Type != "" {
+		t := entities.TrnType(req.Type)
+		q.Type = &t
+	}
+
+	if req.From != "" {
+		t, err := time.Parse(time.RFC3339, req.From)
+		if err != nil {
+			apierr.BadRequest(c, "invalid from date format", err.Error())
+			return
+		}
+		q.From = &t
+	}
+
+	if req.To != "" {
+		t, err := time.Parse(time.RFC3339, req.To)
+		if err != nil {
+			apierr.BadRequest(c, "invalid to date format", err.Error())
+			return
+		}
+		q.To = &t
+	}
+
+	if len(req.AccountIDs) > 0 {
+		q.AccountIDs = make([]uuid.UUID, 0, len(req.AccountIDs))
+		for _, id := range req.AccountIDs {
+			uid, err := uuid.Parse(id)
+			if err != nil {
+				apierr.BadRequest(c, "invalid account id", err.Error())
+				return
+			}
+			q.AccountIDs = append(q.AccountIDs, uid)
+		}
+	}
+
+	transactions, total, err := h.TransactionsUsecase.Query.GetByFilter(ctx, q)
 	if err != nil {
 		apierr.Handle(c, err)
 		return
@@ -127,8 +194,8 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 	resp := models.TransactionsResponse{
 		Items: make([]models.Transaction, 0, len(transactions)),
 		Pagination: models.PaginationResponse{
-			Limit:  page.Limit,
-			Offset: page.Offset,
+			Limit:  req.Limit,
+			Offset: req.Offset,
 			Total:  int64(total),
 		},
 	}
