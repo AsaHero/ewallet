@@ -124,51 +124,14 @@ func (h *Handlers) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	transactions, total, err := h.TransactionsUsecase.Query.GetByFilter(ctx, userID, &req)
+	var response *models.TransactionsResponse
+	response, err := h.TransactionsUsecase.Query.GetByFilter(ctx, userID, &req)
 	if err != nil {
 		apierr.Handle(c, err)
 		return
 	}
 
-	resp := models.TransactionsResponse{
-		Items: make([]models.Transaction, 0, len(transactions)),
-		Pagination: models.PaginationResponse{
-			Limit:  req.Limit,
-			Offset: req.Offset,
-			Total:  int64(total),
-		},
-	}
-
-	for _, trn := range transactions {
-		item := models.Transaction{
-			ID:                   trn.ID.String(),
-			UserID:               trn.UserID.String(),
-			AccountID:            trn.AccountID.String(),
-			Type:                 trn.Type.String(),
-			Status:               trn.Status.String(),
-			Amount:               trn.AmountMajor(),
-			CurrencyCode:         trn.CurrencyCode.String(),
-			OriginalAmount:       pointer.Float64(trn.OriginalAmountMajor()),
-			OriginalCurrencyCode: pointer.String(trn.OriginalCurrencyCode.String()),
-			FxRate:               pointer.Float64(trn.FxRate),
-			Note:                 trn.RowText,
-			PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
-			RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
-			CreatedAt:            trn.CreatedAt,
-		}
-
-		if trn.Category != nil {
-			item.CategoryID = pointer.IntOrNil(trn.Category.ID.Int())
-		}
-
-		if trn.Subcategory != nil {
-			item.SubcategoryID = pointer.IntOrNil(trn.Subcategory.ID)
-		}
-
-		resp.Items = append(resp.Items, item)
-	}
-
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, response)
 }
 
 // GetTransaction godoc

@@ -3,8 +3,10 @@ package query
 import (
 	"context"
 	"strconv"
+	"sync"
 	"time"
 
+	"github.com/AsaHero/e-wallet/internal/delivery/api/models"
 	"github.com/AsaHero/e-wallet/internal/entities"
 	"github.com/AsaHero/e-wallet/internal/inerr"
 	"github.com/AsaHero/e-wallet/pkg/logger"
@@ -19,16 +21,19 @@ import (
 type GetByFilterUsecase struct {
 	contextTimeout   time.Duration
 	logger           *logger.Logger
+	usersRepo        entities.UserRepository
 	transactionsRepo entities.TransactionRepository
 }
 
 func NewGetByFilterUsecase(
 	timeout time.Duration,
 	logger *logger.Logger,
+	usersRepo entities.UserRepository,
 	transactionsRepo entities.TransactionRepository,
 ) *GetByFilterUsecase {
 	return &GetByFilterUsecase{
 		contextTimeout:   timeout,
+		usersRepo:        usersRepo,
 		transactionsRepo: transactionsRepo,
 		logger:           logger,
 	}
@@ -48,7 +53,7 @@ type GetByFilterQuery struct {
 	Search      string   `form:"search"`
 }
 
-func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, query *GetByFilterQuery) (_ []*entities.Transaction, _ int, err error) {
+func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, query *GetByFilterQuery) (_ *models.TransactionsResponse, err error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
@@ -72,7 +77,7 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 		input.userID, err = uuid.Parse(userID)
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to parse user id", err)
-			return nil, 0, inerr.NewErrValidation("user_id", "invalid uuid type")
+			return nil, inerr.NewErrValidation("user_id", "invalid uuid type")
 		}
 
 		if query.Limit == 0 {
@@ -88,7 +93,7 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 			from, err := time.Parse(time.RFC3339, query.From)
 			if err != nil {
 				u.logger.ErrorContext(ctx, "failed to parse from", err)
-				return nil, 0, inerr.NewErrValidation("from", "invalid date format")
+				return nil, inerr.NewErrValidation("from", "invalid date format")
 			}
 			input.from = &from
 		}
@@ -97,7 +102,7 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 			to, err := time.Parse(time.RFC3339, query.To)
 			if err != nil {
 				u.logger.ErrorContext(ctx, "failed to parse to", err)
-				return nil, 0, inerr.NewErrValidation("to", "invalid date format")
+				return nil, inerr.NewErrValidation("to", "invalid date format")
 			}
 			to = utils.StartOfDate(to).AddDate(0, 0, 1)
 			input.to = &to
@@ -114,7 +119,7 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 				uid, err := uuid.Parse(id)
 				if err != nil {
 					u.logger.ErrorContext(ctx, "failed to parse account id", err)
-					return nil, 0, inerr.NewErrValidation("account_id", "invalid uuid type")
+					return nil, inerr.NewErrValidation("account_id", "invalid uuid type")
 				}
 				input.accountIDs = append(input.accountIDs, uid)
 			}
@@ -126,12 +131,18 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 				i, err := strconv.Atoi(id)
 				if err != nil {
 					u.logger.ErrorContext(ctx, "failed to parse category id", err)
-					return nil, 0, inerr.NewErrValidation("category_id", "invalid int type")
+					return nil, inerr.NewErrValidation("category_id", "invalid int type")
 				}
 				input.categoryIDs = append(input.categoryIDs, i)
 			}
 		}
 
+	}
+
+	user, err := u.usersRepo.FindByID(ctx, input.userID)
+	if err != nil {
+		u.logger.ErrorContext(ctx, "failed to get user", err)
+		return nil, err
 	}
 
 	filter := &entities.TransactionFilter{
@@ -148,11 +159,79 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 		MaxAmount:   query.MaxAmount,
 	}
 
-	trn, total, err := u.transactionsRepo.GetByFilter(ctx, filter)
-	if err != nil {
-		u.logger.ErrorContext(ctx, "failed to get transaction", err)
-		return nil, 0, err
+	var (
+		transactions []*entities.Transaction
+		total        int
+		totals       map[entities.TrnType]int64
+		errTrn       error
+		errTotals    error
+		wg           sync.WaitGroup
+	)
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		transactions, total, errTrn = u.transactionsRepo.GetByFilter(ctx, filter)
+	}()
+
+	go func() {
+		defer wg.Done()
+		totals, errTotals = u.transactionsRepo.GetFilterTotals(ctx, filter)
+	}()
+
+	wg.Wait()
+
+	if errTrn != nil {
+		u.logger.ErrorContext(ctx, "failed to get transaction", errTrn)
+		return nil, errTrn
 	}
 
-	return trn, total, nil
+	resp := &models.TransactionsResponse{
+		Items: make([]models.Transaction, 0, len(transactions)),
+		Pagination: models.PaginationResponse{
+			Limit:  query.Limit,
+			Offset: query.Offset,
+			Total:  int64(total),
+		},
+	}
+
+	if errTotals != nil {
+		u.logger.ErrorContext(ctx, "failed to get transaction totals", errTotals)
+	} else {
+		resp.TotalIncome = entities.MajorFromMinor(totals[entities.Deposit], user.CurrencyCode.Scale())
+		resp.TotalExpenses = entities.MajorFromMinor(totals[entities.Withdrawal], user.CurrencyCode.Scale())
+		resp.NetBalance = resp.TotalIncome - resp.TotalExpenses
+	}
+
+	for _, trn := range transactions {
+		item := models.Transaction{
+			ID:                   trn.ID.String(),
+			UserID:               trn.UserID.String(),
+			AccountID:            trn.AccountID.String(),
+			Type:                 trn.Type.String(),
+			Status:               trn.Status.String(),
+			Amount:               trn.AmountMajor(),
+			CurrencyCode:         trn.CurrencyCode.String(),
+			OriginalAmount:       pointer.Float64(trn.OriginalAmountMajor()),
+			OriginalCurrencyCode: pointer.String(trn.OriginalCurrencyCode.String()),
+			FxRate:               pointer.Float64(trn.FxRate),
+			Note:                 trn.RowText,
+			PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
+			RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
+			CreatedAt:            trn.CreatedAt,
+		}
+
+		if trn.Category != nil {
+			item.CategoryID = pointer.IntOrNil(trn.Category.ID.Int())
+		}
+
+		if trn.Subcategory != nil {
+			item.SubcategoryID = pointer.IntOrNil(trn.Subcategory.ID)
+		}
+
+		resp.Items = append(resp.Items, item)
+	}
+
+	return resp, nil
 }

@@ -206,8 +206,14 @@ definitions:
         items:
           $ref: '#/definitions/models.Transaction'
         type: array
+      net_balance:
+        type: number
       pagination:
         $ref: '#/definitions/models.PaginationResponse'
+      total_expenses:
+        type: number
+      total_income:
+        type: number
     type: object
   models.UpdateAccountRequest:
     properties:

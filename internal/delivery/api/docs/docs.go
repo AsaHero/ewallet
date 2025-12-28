@@ -1350,8 +1350,17 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.Transaction"
                     }
                 },
+                "net_balance": {
+                    "type": "number"
+                },
                 "pagination": {
                     "$ref": "#/definitions/models.PaginationResponse"
+                },
+                "total_expenses": {
+                    "type": "number"
+                },
+                "total_income": {
+                    "type": "number"
                 }
             }
         },

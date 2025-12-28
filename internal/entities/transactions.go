@@ -256,5 +256,6 @@ type TransactionRepository interface {
 	GetTotalsByCategories(ctx context.Context, userID uuid.UUID, trnType TrnType, from, to *time.Time) (map[int]int64, []int, error)
 	GetTotalsByCategoriesAndAccount(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID, trnType TrnType, from, to *time.Time) (map[int]int64, []int, error)
 	GetAllBetween(ctx context.Context, userID uuid.UUID, from, to time.Time) ([]*Transaction, error)
+	GetFilterTotals(ctx context.Context, filter *TransactionFilter) (map[TrnType]int64, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }

@@ -70,7 +70,7 @@ func NewModule(
 		},
 		Query: Query{
 			GetByIDUsecase:     query.NewGetByIDUsecase(timeout, logger, transactionsRepo),
-			GetByFilterUsecase: query.NewGetByFilterUsecase(timeout, logger, transactionsRepo),
+			GetByFilterUsecase: query.NewGetByFilterUsecase(timeout, logger, usersRepo, transactionsRepo),
 			GetStatsUsecase:    query.NewGetStatsUsecase(timeout, logger, usersRepo, accountsRepo, transactionsRepo, categortiesRepo),
 		},
 	}

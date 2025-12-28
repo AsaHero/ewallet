@@ -419,3 +419,63 @@ func (r *transactionsRepo) ToEntity(ctx context.Context, m *Transactions) *entit
 
 	return e
 }
+
+func (r *transactionsRepo) GetFilterTotals(ctx context.Context, filter *entities.TransactionFilter) (map[entities.TrnType]int64, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var results []struct {
+		Type  string `bun:"type"`
+		Total int64  `bun:"total"`
+	}
+
+	query := db.NewSelect().
+		Model((*Transactions)(nil)).
+		Column("type").
+		ColumnExpr("COALESCE(SUM(amount), 0) as total").
+		Where("user_id = ?", filter.UserID.String()).
+		Group("type")
+
+	if len(filter.Types) > 0 {
+		query = query.Where("type IN (?)", bun.In(filter.Types))
+	}
+
+	if len(filter.AccountIDs) > 0 {
+		query = query.Where("account_id IN (?)", bun.In(filter.AccountIDs))
+	}
+
+	if len(filter.CategoryIDs) > 0 {
+		query = query.Where("category_id IN (?)", bun.In(filter.CategoryIDs))
+	}
+
+	if filter.MinAmount != nil {
+		query = query.Where("amount >= ?", *filter.MinAmount)
+	}
+
+	if filter.MaxAmount != nil {
+		query = query.Where("amount <= ?", *filter.MaxAmount)
+	}
+
+	if filter.From != nil {
+		query = query.Where("created_at >= ?", filter.From)
+	}
+
+	if filter.To != nil {
+		query = query.Where("created_at < ?", filter.To)
+	}
+
+	if filter.Search != nil && *filter.Search != "" {
+		query = query.Where("row_text ILIKE ?", "%"+*filter.Search+"%")
+	}
+
+	err := query.Scan(ctx, &results)
+	if err != nil {
+		return nil, postgres.Error(err, Transactions{})
+	}
+
+	totals := make(map[entities.TrnType]int64)
+	for _, result := range results {
+		totals[entities.TrnType(result.Type)] = result.Total
+	}
+
+	return totals, nil
+}
