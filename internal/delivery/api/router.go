@@ -113,7 +113,11 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 			protected.DELETE("/subcategories/:id", h.DeleteSubcategory)
 
 			// Stats routes
-			protected.GET("/stats/summary", h.GetStats)
+			protected.GET("/stats/timeseries", h.GetTimeseriesStats)
+			protected.GET("/stats/by-category", h.GetStatsByCategory)
+			protected.GET("/stats/by-subcategory", h.GetStatsBySubcategory)
+			protected.GET("/stats/by-account", h.GetStatsByAccount)
+			protected.GET("/stats/compare", h.GetStatsCompare)
 		}
 	}
 

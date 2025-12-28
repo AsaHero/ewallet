@@ -501,7 +501,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/stats/summary": {
+        "/stats/by-account": {
             "get": {
                 "security": [
                     {
@@ -514,24 +514,26 @@ const docTemplate = `{
                 "tags": [
                     "Stats"
                 ],
-                "summary": "Returns aggregated statistics",
+                "summary": "Returns statistics grouped by account",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "From Date",
+                        "description": "From Date (YYYY-MM-DD)",
                         "name": "from",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
-                        "description": "To Date",
+                        "description": "To Date (YYYY-MM-DD)",
                         "name": "to",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Account ID",
-                        "name": "account_id",
+                        "description": "Transaction Type (deposit/withdrawal)",
+                        "name": "type",
                         "in": "query"
                     }
                 ],
@@ -539,7 +541,335 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/query.GetStatsView"
+                            "$ref": "#/definitions/query.AccountStatsView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/by-category": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Returns statistics grouped by category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "From Date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "To Date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Account IDs",
+                        "name": "account_ids[]",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transaction Type (deposit/withdrawal)",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/query.CategoryStatsView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/by-subcategory": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Returns statistics grouped by subcategory",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "From Date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "To Date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Account IDs",
+                        "name": "account_ids[]",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Category IDs",
+                        "name": "category_ids[]",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transaction Type (deposit/withdrawal)",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/query.SubcategoryStatsView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/compare": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Returns period-over-period comparison statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Preset period: this_month_vs_last_month, last_7_days_vs_previous_7_days, this_year_vs_last_year",
+                        "name": "period",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Base period start date (YYYY-MM-DD)",
+                        "name": "base_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Base period end date (YYYY-MM-DD)",
+                        "name": "base_to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Compare period start date (YYYY-MM-DD)",
+                        "name": "compare_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Compare period end date (YYYY-MM-DD)",
+                        "name": "compare_to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Account IDs",
+                        "name": "account_ids[]",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transaction Type (deposit/withdrawal)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Number of top changes to return",
+                        "name": "top_limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/query.StatsCompareView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/timeseries": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Returns time-series aggregated statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "From Date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "To Date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Account IDs",
+                        "name": "account_ids[]",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Category IDs",
+                        "name": "category_ids[]",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transaction Type (deposit/withdrawal/transfer/adjustment)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "day",
+                        "description": "Group by (day/week/month)",
+                        "name": "group_by",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/query.TimeseriesStatsView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
                         }
                     },
                     "401": {
@@ -1590,6 +1920,66 @@ const docTemplate = `{
                 }
             }
         },
+        "query.AccountStatsItem": {
+            "type": "object",
+            "properties": {
+                "account_id": {
+                    "type": "string"
+                },
+                "count": {
+                    "type": "integer"
+                },
+                "expense": {
+                    "type": "number"
+                },
+                "income": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "net": {
+                    "type": "number"
+                }
+            }
+        },
+        "query.AccountStatsTotals": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "expense": {
+                    "type": "number"
+                },
+                "income": {
+                    "type": "number"
+                },
+                "net": {
+                    "type": "number"
+                }
+            }
+        },
+        "query.AccountStatsView": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/query.AccountStatsItem"
+                    }
+                },
+                "to": {
+                    "type": "string"
+                },
+                "totals": {
+                    "$ref": "#/definitions/query.AccountStatsTotals"
+                }
+            }
+        },
         "query.Category": {
             "type": "object",
             "properties": {
@@ -1610,46 +2000,151 @@ const docTemplate = `{
                 }
             }
         },
-        "query.CategoryStat": {
+        "query.CategoryChange": {
             "type": "object",
             "properties": {
-                "category_emoji": {
-                    "type": "string"
+                "base": {
+                    "type": "number"
                 },
                 "category_id": {
                     "type": "integer"
                 },
-                "category_name": {
+                "compare": {
+                    "type": "number"
+                },
+                "delta_abs": {
+                    "type": "number"
+                },
+                "delta_pct": {
+                    "type": "number"
+                },
+                "emoji": {
                     "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "query.CategoryStatsItem": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "count": {
+                    "type": "integer"
+                },
+                "emoji": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "share": {
+                    "type": "number"
                 },
                 "total": {
                     "type": "number"
                 }
             }
         },
-        "query.GetStatsView": {
+        "query.CategoryStatsTotals": {
             "type": "object",
             "properties": {
-                "balance": {
-                    "type": "number"
+                "count": {
+                    "type": "integer"
                 },
-                "expense_by_category": {
+                "total": {
+                    "type": "number"
+                }
+            }
+        },
+        "query.CategoryStatsView": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/query.CategoryStat"
+                        "$ref": "#/definitions/query.CategoryStatsItem"
                     }
                 },
-                "income_by_category": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/query.CategoryStat"
-                    }
+                "to": {
+                    "type": "string"
                 },
-                "total_expense": {
+                "totals": {
+                    "$ref": "#/definitions/query.CategoryStatsTotals"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "query.DeltaStats": {
+            "type": "object",
+            "properties": {
+                "expense": {
+                    "$ref": "#/definitions/query.DeltaValue"
+                },
+                "income": {
+                    "$ref": "#/definitions/query.DeltaValue"
+                },
+                "net": {
+                    "$ref": "#/definitions/query.DeltaValue"
+                }
+            }
+        },
+        "query.DeltaValue": {
+            "type": "object",
+            "properties": {
+                "abs": {
                     "type": "number"
                 },
-                "total_income": {
+                "pct": {
                     "type": "number"
+                }
+            }
+        },
+        "query.PeriodStats": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "expense": {
+                    "type": "number"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "income": {
+                    "type": "number"
+                },
+                "net": {
+                    "type": "number"
+                },
+                "to": {
+                    "type": "string"
+                }
+            }
+        },
+        "query.StatsCompareView": {
+            "type": "object",
+            "properties": {
+                "base": {
+                    "$ref": "#/definitions/query.PeriodStats"
+                },
+                "compare": {
+                    "$ref": "#/definitions/query.PeriodStats"
+                },
+                "delta": {
+                    "$ref": "#/definitions/query.DeltaStats"
+                },
+                "top_changes": {
+                    "$ref": "#/definitions/query.TopChanges"
                 }
             }
         },
@@ -1673,6 +2168,137 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "query.SubcategoryStatsItem": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "count": {
+                    "type": "integer"
+                },
+                "emoji": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "share": {
+                    "type": "number"
+                },
+                "subcategory_id": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "number"
+                }
+            }
+        },
+        "query.SubcategoryStatsTotals": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "number"
+                }
+            }
+        },
+        "query.SubcategoryStatsView": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/query.SubcategoryStatsItem"
+                    }
+                },
+                "to": {
+                    "type": "string"
+                },
+                "totals": {
+                    "$ref": "#/definitions/query.SubcategoryStatsTotals"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "query.TimeseriesDataPoint": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "expense": {
+                    "type": "number"
+                },
+                "income": {
+                    "type": "number"
+                },
+                "net": {
+                    "type": "number"
+                },
+                "ts": {
+                    "type": "string"
+                }
+            }
+        },
+        "query.TimeseriesStatsView": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "group_by": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/query.TimeseriesDataPoint"
+                    }
+                },
+                "to": {
+                    "type": "string"
+                },
+                "totals": {
+                    "$ref": "#/definitions/query.TimeseriesTotals"
+                }
+            }
+        },
+        "query.TimeseriesTotals": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "expense": {
+                    "type": "number"
+                },
+                "income": {
+                    "type": "number"
+                },
+                "net": {
+                    "type": "number"
+                }
+            }
+        },
+        "query.TopChanges": {
+            "type": "object",
+            "properties": {
+                "expense_by_category": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/query.CategoryChange"
+                    }
                 }
             }
         }

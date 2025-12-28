@@ -20,7 +20,11 @@ type Commands struct {
 type Query struct {
 	*query.GetByIDUsecase
 	*query.GetByFilterUsecase
-	*query.GetStatsUsecase
+	*query.GetTimeseriesStatsUsecase
+	*query.GetStatsByCategoryUsecase
+	*query.GetStatsBySubcategoryUsecase
+	*query.GetStatsByAccountUsecase
+	*query.GetStatsCompareUsecase
 }
 
 type Module struct {
@@ -69,9 +73,13 @@ func NewModule(
 			),
 		},
 		Query: Query{
-			GetByIDUsecase:     query.NewGetByIDUsecase(timeout, logger, transactionsRepo),
-			GetByFilterUsecase: query.NewGetByFilterUsecase(timeout, logger, usersRepo, transactionsRepo),
-			GetStatsUsecase:    query.NewGetStatsUsecase(timeout, logger, usersRepo, accountsRepo, transactionsRepo, categortiesRepo),
+			GetByIDUsecase:               query.NewGetByIDUsecase(timeout, logger, transactionsRepo),
+			GetByFilterUsecase:           query.NewGetByFilterUsecase(timeout, logger, usersRepo, transactionsRepo),
+			GetTimeseriesStatsUsecase:    query.NewGetTimeseriesStatsUsecase(timeout, logger, usersRepo, transactionsRepo),
+			GetStatsByCategoryUsecase:    query.NewGetStatsByCategoryUsecase(timeout, logger, usersRepo, transactionsRepo, categortiesRepo),
+			GetStatsBySubcategoryUsecase: query.NewGetStatsBySubcategoryUsecase(timeout, logger, usersRepo, transactionsRepo, subcategoriesRepo),
+			GetStatsByAccountUsecase:     query.NewGetStatsByAccountUsecase(timeout, logger, usersRepo, transactionsRepo, accountsRepo),
+			GetStatsCompareUsecase:       query.NewGetStatsCompareUsecase(timeout, logger, usersRepo, transactionsRepo, categortiesRepo),
 		},
 	}
 

@@ -246,6 +246,45 @@ type TransactionFilter struct {
 	Search      *string
 }
 
+type CategoryStatsItem struct {
+	CategoryID int
+	Total      int64
+	Count      int
+}
+
+type SubcategoryStatsItem struct {
+	SubcategoryID int
+	CategoryID    int
+	Total         int64
+	Count         int
+}
+
+type AccountStatsItem struct {
+	AccountID uuid.UUID
+	Income    int64
+	Expense   int64
+	Net       int64
+	Count     int
+}
+
+type TimeseriesPoint struct {
+	Timestamp string
+	Income    int64
+	Expense   int64
+	Net       int64
+	Count     int
+}
+
+type TimeseriesFilter struct {
+	UserID      uuid.UUID
+	From        time.Time
+	To          time.Time
+	AccountIDs  []uuid.UUID
+	CategoryIDs []int
+	Type        *TrnType
+	GroupBy     string // "day", "week", or "month"
+}
+
 type TransactionRepository interface {
 	Save(ctx context.Context, transaction *Transaction) error
 	GetByID(ctx context.Context, id uuid.UUID) (*Transaction, error)
@@ -257,5 +296,9 @@ type TransactionRepository interface {
 	GetTotalsByCategoriesAndAccount(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID, trnType TrnType, from, to *time.Time) (map[int]int64, []int, error)
 	GetAllBetween(ctx context.Context, userID uuid.UUID, from, to time.Time) ([]*Transaction, error)
 	GetFilterTotals(ctx context.Context, filter *TransactionFilter) (map[TrnType]int64, error)
+	GetTimeseriesStats(ctx context.Context, filter *TimeseriesFilter) ([]TimeseriesPoint, error)
+	GetStatsByCategory(ctx context.Context, userID uuid.UUID, from, to time.Time, accountIDs []uuid.UUID, trnType *TrnType) ([]CategoryStatsItem, error)
+	GetStatsBySubcategory(ctx context.Context, userID uuid.UUID, from, to time.Time, accountIDs []uuid.UUID, categoryIDs []int, trnType *TrnType) ([]SubcategoryStatsItem, error)
+	GetStatsByAccount(ctx context.Context, userID uuid.UUID, from, to time.Time, trnType *TrnType) ([]AccountStatsItem, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }

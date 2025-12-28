@@ -479,3 +479,217 @@ func (r *transactionsRepo) GetFilterTotals(ctx context.Context, filter *entities
 
 	return totals, nil
 }
+
+func (r *transactionsRepo) GetTimeseriesStats(ctx context.Context, filter *entities.TimeseriesFilter) ([]entities.TimeseriesPoint, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	// Determine the date truncation format based on group_by
+	var dateTrunc string
+	switch filter.GroupBy {
+	case "day":
+		dateTrunc = "day"
+	case "week":
+		dateTrunc = "week"
+	case "month":
+		dateTrunc = "month"
+	default:
+		dateTrunc = "day"
+	}
+
+	var results []struct {
+		Timestamp string `bun:"ts"`
+		Income    int64  `bun:"income"`
+		Expense   int64  `bun:"expense"`
+		Net       int64  `bun:"net"`
+		Count     int    `bun:"count"`
+	}
+
+	query := db.NewSelect().
+		Model((*Transactions)(nil)).
+		ColumnExpr("DATE_TRUNC(?, created_at) as ts", dateTrunc).
+		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as income", entities.Deposit.String()).
+		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as expense", entities.Withdrawal.String()).
+		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE -amount END), 0) as net", entities.Deposit.String()).
+		ColumnExpr("COUNT(*) as count").
+		Where("user_id = ?", filter.UserID.String()).
+		Where("created_at >= ?", filter.From).
+		Where("created_at < ?", filter.To).
+		Group("ts").
+		Order("ts ASC")
+
+	if len(filter.AccountIDs) > 0 {
+		query = query.Where("account_id IN (?)", bun.In(filter.AccountIDs))
+	}
+
+	if len(filter.CategoryIDs) > 0 {
+		query = query.Where("category_id IN (?)", bun.In(filter.CategoryIDs))
+	}
+
+	if filter.Type != nil {
+		query = query.Where("type = ?", filter.Type.String())
+	}
+
+	err := query.Scan(ctx, &results)
+	if err != nil {
+		return nil, postgres.Error(err, Transactions{})
+	}
+
+	points := make([]entities.TimeseriesPoint, 0, len(results))
+	for _, result := range results {
+		points = append(points, entities.TimeseriesPoint{
+			Timestamp: result.Timestamp,
+			Income:    result.Income,
+			Expense:   result.Expense,
+			Net:       result.Net,
+			Count:     result.Count,
+		})
+	}
+
+	return points, nil
+}
+
+func (r *transactionsRepo) GetStatsByCategory(ctx context.Context, userID uuid.UUID, from, to time.Time, accountIDs []uuid.UUID, trnType *entities.TrnType) ([]entities.CategoryStatsItem, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var results []struct {
+		CategoryID int   `bun:"category_id"`
+		Total      int64 `bun:"total"`
+		Count      int   `bun:"count"`
+	}
+
+	query := db.NewSelect().
+		Model((*Transactions)(nil)).
+		Column("category_id").
+		ColumnExpr("SUM(amount) as total").
+		ColumnExpr("COUNT(*) as count").
+		Where("user_id = ?", userID.String()).
+		Where("created_at >= ?", from).
+		Where("created_at < ?", to).
+		Where("category_id IS NOT NULL").
+		Group("category_id").
+		Order("total DESC")
+
+	if len(accountIDs) > 0 {
+		query = query.Where("account_id IN (?)", bun.In(accountIDs))
+	}
+
+	if trnType != nil {
+		query = query.Where("type = ?", trnType.String())
+	}
+
+	err := query.Scan(ctx, &results)
+	if err != nil {
+		return nil, postgres.Error(err, Transactions{})
+	}
+
+	items := make([]entities.CategoryStatsItem, 0, len(results))
+	for _, result := range results {
+		items = append(items, entities.CategoryStatsItem{
+			CategoryID: result.CategoryID,
+			Total:      result.Total,
+			Count:      result.Count,
+		})
+	}
+
+	return items, nil
+}
+
+func (r *transactionsRepo) GetStatsBySubcategory(ctx context.Context, userID uuid.UUID, from, to time.Time, accountIDs []uuid.UUID, categoryIDs []int, trnType *entities.TrnType) ([]entities.SubcategoryStatsItem, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var results []struct {
+		SubcategoryID int   `bun:"subcategory_id"`
+		CategoryID    int   `bun:"category_id"`
+		Total         int64 `bun:"total"`
+		Count         int   `bun:"count"`
+	}
+
+	query := db.NewSelect().
+		Model((*Transactions)(nil)).
+		Column("subcategory_id", "category_id").
+		ColumnExpr("SUM(amount) as total").
+		ColumnExpr("COUNT(*) as count").
+		Where("user_id = ?", userID.String()).
+		Where("created_at >= ?", from).
+		Where("created_at < ?", to).
+		Where("subcategory_id IS NOT NULL").
+		Group("subcategory_id", "category_id").
+		Order("total DESC")
+
+	if len(accountIDs) > 0 {
+		query = query.Where("account_id IN (?)", bun.In(accountIDs))
+	}
+
+	if len(categoryIDs) > 0 {
+		query = query.Where("category_id IN (?)", bun.In(categoryIDs))
+	}
+
+	if trnType != nil {
+		query = query.Where("type = ?", trnType.String())
+	}
+
+	err := query.Scan(ctx, &results)
+	if err != nil {
+		return nil, postgres.Error(err, Transactions{})
+	}
+
+	items := make([]entities.SubcategoryStatsItem, 0, len(results))
+	for _, result := range results {
+		items = append(items, entities.SubcategoryStatsItem{
+			SubcategoryID: result.SubcategoryID,
+			CategoryID:    result.CategoryID,
+			Total:         result.Total,
+			Count:         result.Count,
+		})
+	}
+
+	return items, nil
+}
+
+func (r *transactionsRepo) GetStatsByAccount(ctx context.Context, userID uuid.UUID, from, to time.Time, trnType *entities.TrnType) ([]entities.AccountStatsItem, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	var results []struct {
+		AccountID string `bun:"account_id"`
+		Income    int64  `bun:"income"`
+		Expense   int64  `bun:"expense"`
+		Net       int64  `bun:"net"`
+		Count     int    `bun:"count"`
+	}
+
+	query := db.NewSelect().
+		Model((*Transactions)(nil)).
+		Column("account_id").
+		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as income", entities.Deposit.String()).
+		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as expense", entities.Withdrawal.String()).
+		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE -amount END), 0) as net", entities.Deposit.String()).
+		ColumnExpr("COUNT(*) as count").
+		Where("user_id = ?", userID.String()).
+		Where("created_at >= ?", from).
+		Where("created_at < ?", to).
+		Group("account_id").
+		Order("net DESC")
+
+	if trnType != nil {
+		query = query.Where("type = ?", trnType.String())
+	}
+
+	err := query.Scan(ctx, &results)
+	if err != nil {
+		return nil, postgres.Error(err, Transactions{})
+	}
+
+	items := make([]entities.AccountStatsItem, 0, len(results))
+	for _, result := range results {
+		accountID, _ := uuid.Parse(result.AccountID)
+		items = append(items, entities.AccountStatsItem{
+			AccountID: accountID,
+			Income:    result.Income,
+			Expense:   result.Expense,
+			Net:       result.Net,
+			Count:     result.Count,
+		})
+	}
+
+	return items, nil
+}

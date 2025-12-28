@@ -364,6 +364,45 @@ definitions:
       type:
         type: string
     type: object
+  query.AccountStatsItem:
+    properties:
+      account_id:
+        type: string
+      count:
+        type: integer
+      expense:
+        type: number
+      income:
+        type: number
+      name:
+        type: string
+      net:
+        type: number
+    type: object
+  query.AccountStatsTotals:
+    properties:
+      count:
+        type: integer
+      expense:
+        type: number
+      income:
+        type: number
+      net:
+        type: number
+    type: object
+  query.AccountStatsView:
+    properties:
+      from:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/query.AccountStatsItem'
+        type: array
+      to:
+        type: string
+      totals:
+        $ref: '#/definitions/query.AccountStatsTotals'
+    type: object
   query.Category:
     properties:
       emoji:
@@ -377,33 +416,101 @@ definitions:
       user_id:
         type: string
     type: object
-  query.CategoryStat:
+  query.CategoryChange:
     properties:
-      category_emoji:
-        type: string
+      base:
+        type: number
       category_id:
         type: integer
-      category_name:
+      compare:
+        type: number
+      delta_abs:
+        type: number
+      delta_pct:
+        type: number
+      emoji:
         type: string
+      name:
+        type: string
+    type: object
+  query.CategoryStatsItem:
+    properties:
+      category_id:
+        type: integer
+      count:
+        type: integer
+      emoji:
+        type: string
+      name:
+        type: string
+      share:
+        type: number
       total:
         type: number
     type: object
-  query.GetStatsView:
+  query.CategoryStatsTotals:
     properties:
-      balance:
+      count:
+        type: integer
+      total:
         type: number
-      expense_by_category:
+    type: object
+  query.CategoryStatsView:
+    properties:
+      from:
+        type: string
+      items:
         items:
-          $ref: '#/definitions/query.CategoryStat'
+          $ref: '#/definitions/query.CategoryStatsItem'
         type: array
-      income_by_category:
-        items:
-          $ref: '#/definitions/query.CategoryStat'
-        type: array
-      total_expense:
+      to:
+        type: string
+      totals:
+        $ref: '#/definitions/query.CategoryStatsTotals'
+      type:
+        type: string
+    type: object
+  query.DeltaStats:
+    properties:
+      expense:
+        $ref: '#/definitions/query.DeltaValue'
+      income:
+        $ref: '#/definitions/query.DeltaValue'
+      net:
+        $ref: '#/definitions/query.DeltaValue'
+    type: object
+  query.DeltaValue:
+    properties:
+      abs:
         type: number
-      total_income:
+      pct:
         type: number
+    type: object
+  query.PeriodStats:
+    properties:
+      count:
+        type: integer
+      expense:
+        type: number
+      from:
+        type: string
+      income:
+        type: number
+      net:
+        type: number
+      to:
+        type: string
+    type: object
+  query.StatsCompareView:
+    properties:
+      base:
+        $ref: '#/definitions/query.PeriodStats'
+      compare:
+        $ref: '#/definitions/query.PeriodStats'
+      delta:
+        $ref: '#/definitions/query.DeltaStats'
+      top_changes:
+        $ref: '#/definitions/query.TopChanges'
     type: object
   query.Subcategory:
     properties:
@@ -419,6 +526,91 @@ definitions:
         type: integer
       user_id:
         type: string
+    type: object
+  query.SubcategoryStatsItem:
+    properties:
+      category_id:
+        type: integer
+      count:
+        type: integer
+      emoji:
+        type: string
+      name:
+        type: string
+      share:
+        type: number
+      subcategory_id:
+        type: integer
+      total:
+        type: number
+    type: object
+  query.SubcategoryStatsTotals:
+    properties:
+      count:
+        type: integer
+      total:
+        type: number
+    type: object
+  query.SubcategoryStatsView:
+    properties:
+      from:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/query.SubcategoryStatsItem'
+        type: array
+      to:
+        type: string
+      totals:
+        $ref: '#/definitions/query.SubcategoryStatsTotals'
+      type:
+        type: string
+    type: object
+  query.TimeseriesDataPoint:
+    properties:
+      count:
+        type: integer
+      expense:
+        type: number
+      income:
+        type: number
+      net:
+        type: number
+      ts:
+        type: string
+    type: object
+  query.TimeseriesStatsView:
+    properties:
+      from:
+        type: string
+      group_by:
+        type: string
+      points:
+        items:
+          $ref: '#/definitions/query.TimeseriesDataPoint'
+        type: array
+      to:
+        type: string
+      totals:
+        $ref: '#/definitions/query.TimeseriesTotals'
+    type: object
+  query.TimeseriesTotals:
+    properties:
+      count:
+        type: integer
+      expense:
+        type: number
+      income:
+        type: number
+      net:
+        type: number
+    type: object
+  query.TopChanges:
+    properties:
+      expense_by_category:
+        items:
+          $ref: '#/definitions/query.CategoryChange'
+        type: array
     type: object
 info:
   contact:
@@ -731,20 +923,22 @@ paths:
       summary: Parse voice
       tags:
       - Parse
-  /stats/summary:
+  /stats/by-account:
     get:
       parameters:
-      - description: From Date
+      - description: From Date (YYYY-MM-DD)
         in: query
         name: from
+        required: true
         type: string
-      - description: To Date
+      - description: To Date (YYYY-MM-DD)
         in: query
         name: to
+        required: true
         type: string
-      - description: Account ID
+      - description: Transaction Type (deposit/withdrawal)
         in: query
-        name: account_id
+        name: type
         type: string
       produces:
       - application/json
@@ -752,14 +946,229 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/query.GetStatsView'
+            $ref: '#/definitions/query.AccountStatsView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
         "401":
           description: Unauthorized
           schema:
             $ref: '#/definitions/apierr.Response'
       security:
       - BearerAuth: []
-      summary: Returns aggregated statistics
+      summary: Returns statistics grouped by account
+      tags:
+      - Stats
+  /stats/by-category:
+    get:
+      parameters:
+      - description: From Date (YYYY-MM-DD)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To Date (YYYY-MM-DD)
+        in: query
+        name: to
+        required: true
+        type: string
+      - collectionFormat: csv
+        description: Account IDs
+        in: query
+        items:
+          type: string
+        name: account_ids[]
+        type: array
+      - description: Transaction Type (deposit/withdrawal)
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/query.CategoryStatsView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns statistics grouped by category
+      tags:
+      - Stats
+  /stats/by-subcategory:
+    get:
+      parameters:
+      - description: From Date (YYYY-MM-DD)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To Date (YYYY-MM-DD)
+        in: query
+        name: to
+        required: true
+        type: string
+      - collectionFormat: csv
+        description: Account IDs
+        in: query
+        items:
+          type: string
+        name: account_ids[]
+        type: array
+      - collectionFormat: csv
+        description: Category IDs
+        in: query
+        items:
+          type: integer
+        name: category_ids[]
+        type: array
+      - description: Transaction Type (deposit/withdrawal)
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/query.SubcategoryStatsView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns statistics grouped by subcategory
+      tags:
+      - Stats
+  /stats/compare:
+    get:
+      parameters:
+      - description: 'Preset period: this_month_vs_last_month, last_7_days_vs_previous_7_days,
+          this_year_vs_last_year'
+        in: query
+        name: period
+        type: string
+      - description: Base period start date (YYYY-MM-DD)
+        in: query
+        name: base_from
+        type: string
+      - description: Base period end date (YYYY-MM-DD)
+        in: query
+        name: base_to
+        type: string
+      - description: Compare period start date (YYYY-MM-DD)
+        in: query
+        name: compare_from
+        type: string
+      - description: Compare period end date (YYYY-MM-DD)
+        in: query
+        name: compare_to
+        type: string
+      - collectionFormat: csv
+        description: Account IDs
+        in: query
+        items:
+          type: string
+        name: account_ids[]
+        type: array
+      - description: Transaction Type (deposit/withdrawal)
+        in: query
+        name: type
+        type: string
+      - default: 5
+        description: Number of top changes to return
+        in: query
+        name: top_limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/query.StatsCompareView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns period-over-period comparison statistics
+      tags:
+      - Stats
+  /stats/timeseries:
+    get:
+      parameters:
+      - description: From Date (YYYY-MM-DD)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To Date (YYYY-MM-DD)
+        in: query
+        name: to
+        required: true
+        type: string
+      - collectionFormat: csv
+        description: Account IDs
+        in: query
+        items:
+          type: string
+        name: account_ids[]
+        type: array
+      - collectionFormat: csv
+        description: Category IDs
+        in: query
+        items:
+          type: integer
+        name: category_ids[]
+        type: array
+      - description: Transaction Type (deposit/withdrawal/transfer/adjustment)
+        in: query
+        name: type
+        type: string
+      - default: day
+        description: Group by (day/week/month)
+        in: query
+        name: group_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/query.TimeseriesStatsView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns time-series aggregated statistics
       tags:
       - Stats
   /subcategories:
