@@ -200,8 +200,8 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 		u.logger.ErrorContext(ctx, "failed to get transaction totals", errTotals)
 	} else {
 		resp.TotalIncome = entities.MajorFromMinor(totals[entities.Deposit], user.CurrencyCode.Scale())
-		resp.TotalExpenses = entities.MajorFromMinor(totals[entities.Withdrawal], user.CurrencyCode.Scale())
-		resp.NetBalance = resp.TotalIncome - resp.TotalExpenses
+		resp.TotalExpense = entities.MajorFromMinor(totals[entities.Withdrawal], user.CurrencyCode.Scale())
+		resp.NetBalance = resp.TotalIncome - resp.TotalExpense
 	}
 
 	for _, trn := range transactions {
