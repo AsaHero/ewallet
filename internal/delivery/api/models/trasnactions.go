@@ -63,9 +63,9 @@ type UpdateTransactionRequest struct {
 }
 
 type TransactionsResponse struct {
-	Items         []Transaction      `json:"items"`
-	Pagination    PaginationResponse `json:"pagination"`
-	TotalIncome   float64            `json:"total_income"`
-	TotalExpenses float64            `json:"total_expenses"`
-	NetBalance    float64            `json:"net_balance"`
+	Items        []Transaction      `json:"items"`
+	Pagination   PaginationResponse `json:"pagination"`
+	TotalIncome  float64            `json:"total_income"`
+	TotalExpense float64            `json:"total_expense"`
+	NetBalance   float64            `json:"net_balance"`
 }

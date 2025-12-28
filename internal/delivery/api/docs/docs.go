@@ -1356,7 +1356,7 @@ const docTemplate = `{
                 "pagination": {
                     "$ref": "#/definitions/models.PaginationResponse"
                 },
-                "total_expenses": {
+                "total_expense": {
                     "type": "number"
                 },
                 "total_income": {
