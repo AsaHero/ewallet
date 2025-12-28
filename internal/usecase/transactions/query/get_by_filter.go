@@ -40,17 +40,18 @@ func NewGetByFilterUsecase(
 }
 
 type GetByFilterQuery struct {
-	UserID      string   `form:"user_id"`
-	Limit       uint64   `form:"limit"`
-	Offset      uint64   `form:"offset"`
-	From        string   `form:"from"`
-	To          string   `form:"to"`
-	Type        string   `form:"type"`
-	CategoryIDs []string `form:"category_ids"`
-	AccountIDs  []string `form:"account_ids"`
-	MinAmount   *int64   `form:"min_amount"`
-	MaxAmount   *int64   `form:"max_amount"`
-	Search      string   `form:"search"`
+	UserID         string   `form:"user_id"`
+	Limit          uint64   `form:"limit"`
+	Offset         uint64   `form:"offset"`
+	From           string   `form:"from"`
+	To             string   `form:"to"`
+	Type           string   `form:"type"`
+	CategoryIDs    []string `form:"category_ids"`
+	AccountIDs     []string `form:"account_ids"`
+	SubcategoryIDs []string `form:"subcategory_ids"`
+	MinAmount      *int64   `form:"min_amount"`
+	MaxAmount      *int64   `form:"max_amount"`
+	Search         string   `form:"search"`
 }
 
 func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, query *GetByFilterQuery) (_ *models.TransactionsResponse, err error) {
@@ -63,14 +64,15 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 	defer func() { end(err) }()
 
 	var input struct {
-		userID      uuid.UUID
-		limit       int
-		offset      int
-		from        *time.Time
-		to          *time.Time
-		trnType     []entities.TrnType
-		categoryIDs []int
-		accountIDs  []uuid.UUID
+		userID         uuid.UUID
+		limit          int
+		offset         int
+		from           *time.Time
+		to             *time.Time
+		trnType        []entities.TrnType
+		categoryIDs    []int
+		subcategoryIDs []int
+		accountIDs     []uuid.UUID
 	}
 	{
 		var err error
@@ -137,6 +139,17 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 			}
 		}
 
+		if len(query.SubcategoryIDs) > 0 {
+			input.subcategoryIDs = make([]int, 0, len(query.SubcategoryIDs))
+			for _, id := range query.SubcategoryIDs {
+				i, err := strconv.Atoi(id)
+				if err != nil {
+					u.logger.ErrorContext(ctx, "failed to parse subcategory id", err)
+					return nil, inerr.NewErrValidation("subcategory_id", "invalid int type")
+				}
+				input.subcategoryIDs = append(input.subcategoryIDs, i)
+			}
+		}
 	}
 
 	user, err := u.usersRepo.FindByID(ctx, input.userID)
@@ -146,17 +159,18 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 	}
 
 	filter := &entities.TransactionFilter{
-		UserID:      input.userID,
-		Limit:       input.limit,
-		Offset:      input.offset,
-		CategoryIDs: input.categoryIDs,
-		AccountIDs:  input.accountIDs,
-		From:        input.from,
-		To:          input.to,
-		Types:       input.trnType,
-		Search:      pointer.StringOrNil(query.Search),
-		MinAmount:   query.MinAmount,
-		MaxAmount:   query.MaxAmount,
+		UserID:         input.userID,
+		Limit:          input.limit,
+		Offset:         input.offset,
+		CategoryIDs:    input.categoryIDs,
+		SubcategoryIDs: input.subcategoryIDs,
+		AccountIDs:     input.accountIDs,
+		From:           input.from,
+		To:             input.to,
+		Types:          input.trnType,
+		Search:         pointer.StringOrNil(query.Search),
+		MinAmount:      query.MinAmount,
+		MaxAmount:      query.MaxAmount,
 	}
 
 	var (

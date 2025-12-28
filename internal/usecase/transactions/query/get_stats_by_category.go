@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/AsaHero/e-wallet/pkg/utils"
 	"github.com/AsaHero/e-wallet/internal/entities"
 	"github.com/AsaHero/e-wallet/internal/inerr"
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
+	"github.com/AsaHero/e-wallet/pkg/utils"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -38,6 +38,13 @@ func NewGetStatsByCategoryUsecase(
 	}
 }
 
+type GetStatsByCategoryQuery struct {
+	From       string   `form:"from" validate:"required"`
+	To         string   `form:"to" validate:"required"`
+	Type       string   `form:"type"`
+	AccountIDs []string `form:"account_ids"`
+}
+
 type CategoryStatsView struct {
 	From   string              `json:"from"`
 	To     string              `json:"to"`
@@ -63,18 +70,15 @@ type CategoryStatsTotals struct {
 func (u *GetStatsByCategoryUsecase) GetStatsByCategory(
 	ctx context.Context,
 	userID string,
-	from string,
-	to string,
-	accountIDs []string,
-	trnType string,
+	query *GetStatsByCategoryQuery,
 ) (_ *CategoryStatsView, err error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
 	ctx, end := otlp.Start(ctx, otel.Tracer("transactions"), "GetStatsByCategory",
 		attribute.String("user_id", userID),
-		attribute.String("from", from),
-		attribute.String("to", to),
+		attribute.String("from", query.From),
+		attribute.String("to", query.To),
 	)
 	defer func() { end(err) }()
 
@@ -95,19 +99,19 @@ func (u *GetStatsByCategoryUsecase) GetStatsByCategory(
 			return nil, inerr.NewErrValidation("user_id", "invalid uuid type")
 		}
 
-		if from == "" {
+		if query.From == "" {
 			return nil, inerr.NewErrValidation("from", "from date is required")
 		}
-		input.from, err = time.Parse(time.DateOnly, from)
+		input.from, err = time.Parse(time.DateOnly, query.From)
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to parse from", err)
 			return nil, inerr.NewErrValidation("from", "invalid date format, use YYYY-MM-DD")
 		}
 
-		if to == "" {
+		if query.To == "" {
 			return nil, inerr.NewErrValidation("to", "to date is required")
 		}
-		input.to, err = time.Parse(time.DateOnly, to)
+		input.to, err = time.Parse(time.DateOnly, query.To)
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to parse to", err)
 			return nil, inerr.NewErrValidation("to", "invalid date format, use YYYY-MM-DD")
@@ -115,9 +119,9 @@ func (u *GetStatsByCategoryUsecase) GetStatsByCategory(
 		input.to = utils.EndOfDate(input.to)
 
 		// Parse account IDs
-		if len(accountIDs) > 0 {
-			input.accountIDs = make([]uuid.UUID, 0, len(accountIDs))
-			for _, idStr := range accountIDs {
+		if len(query.AccountIDs) > 0 {
+			input.accountIDs = make([]uuid.UUID, 0, len(query.AccountIDs))
+			for _, idStr := range query.AccountIDs {
 				accountID, err := uuid.Parse(idStr)
 				if err != nil {
 					u.logger.ErrorContext(ctx, "failed to parse account id", err)
@@ -128,8 +132,8 @@ func (u *GetStatsByCategoryUsecase) GetStatsByCategory(
 		}
 
 		// Parse transaction type
-		if trnType != "" {
-			t := entities.TrnType(trnType)
+		if query.Type != "" {
+			t := entities.TrnType(query.Type)
 			if t != entities.Deposit && t != entities.Withdrawal && t != entities.Transfer && t != entities.Adjustment {
 				return nil, inerr.NewErrValidation("type", "invalid transaction type")
 			}
@@ -153,13 +157,13 @@ func (u *GetStatsByCategoryUsecase) GetStatsByCategory(
 
 	// Build response
 	response := &CategoryStatsView{
-		From:  from,
-		To:    to,
+		From:  query.From,
+		To:    query.To,
 		Items: make([]CategoryStatsItem, 0, len(items)),
 	}
 
-	if trnType != "" {
-		response.Type = trnType
+	if query.Type != "" {
+		response.Type = query.Type
 	}
 
 	scale := user.CurrencyCode.Scale()

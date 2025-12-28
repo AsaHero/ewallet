@@ -38,6 +38,14 @@ func NewGetStatsBySubcategoryUsecase(
 	}
 }
 
+type GetStatsBySubcategoryQuery struct {
+	From        string   `form:"from" binding:"required"`
+	To          string   `form:"to" binding:"required"`
+	AccountIDs  []string `form:"account_ids"`
+	CategoryIDs []int    `form:"category_ids"`
+	Type        string   `form:"type"`
+}
+
 type SubcategoryStatsView struct {
 	From   string                 `json:"from"`
 	To     string                 `json:"to"`
@@ -64,19 +72,15 @@ type SubcategoryStatsTotals struct {
 func (u *GetStatsBySubcategoryUsecase) GetStatsBySubcategory(
 	ctx context.Context,
 	userID string,
-	from string,
-	to string,
-	accountIDs []string,
-	categoryIDs []int,
-	trnType string,
+	query *GetStatsBySubcategoryQuery,
 ) (_ *SubcategoryStatsView, err error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
 	ctx, end := otlp.Start(ctx, otel.Tracer("transactions"), "GetStatsBySubcategory",
 		attribute.String("user_id", userID),
-		attribute.String("from", from),
-		attribute.String("to", to),
+		attribute.String("from", query.From),
+		attribute.String("to", query.To),
 	)
 	defer func() { end(err) }()
 
@@ -98,19 +102,19 @@ func (u *GetStatsBySubcategoryUsecase) GetStatsBySubcategory(
 			return nil, inerr.NewErrValidation("user_id", "invalid uuid type")
 		}
 
-		if from == "" {
+		if query.From == "" {
 			return nil, inerr.NewErrValidation("from", "from date is required")
 		}
-		input.from, err = time.Parse(time.DateOnly, from)
+		input.from, err = time.Parse(time.DateOnly, query.From)
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to parse from", err)
 			return nil, inerr.NewErrValidation("from", "invalid date format, use YYYY-MM-DD")
 		}
 
-		if to == "" {
+		if query.To == "" {
 			return nil, inerr.NewErrValidation("to", "to date is required")
 		}
-		input.to, err = time.Parse(time.DateOnly, to)
+		input.to, err = time.Parse(time.DateOnly, query.To)
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to parse to", err)
 			return nil, inerr.NewErrValidation("to", "invalid date format, use YYYY-MM-DD")
@@ -118,9 +122,9 @@ func (u *GetStatsBySubcategoryUsecase) GetStatsBySubcategory(
 		input.to = utils.EndOfDate(input.to)
 
 		// Parse account IDs
-		if len(accountIDs) > 0 {
-			input.accountIDs = make([]uuid.UUID, 0, len(accountIDs))
-			for _, idStr := range accountIDs {
+		if len(query.AccountIDs) > 0 {
+			input.accountIDs = make([]uuid.UUID, 0, len(query.AccountIDs))
+			for _, idStr := range query.AccountIDs {
 				accountID, err := uuid.Parse(idStr)
 				if err != nil {
 					u.logger.ErrorContext(ctx, "failed to parse account id", err)
@@ -131,11 +135,11 @@ func (u *GetStatsBySubcategoryUsecase) GetStatsBySubcategory(
 		}
 
 		// Parse category IDs
-		input.categoryIDs = categoryIDs
+		input.categoryIDs = query.CategoryIDs
 
 		// Parse transaction type
-		if trnType != "" {
-			t := entities.TrnType(trnType)
+		if query.Type != "" {
+			t := entities.TrnType(query.Type)
 			if t != entities.Deposit && t != entities.Withdrawal && t != entities.Transfer && t != entities.Adjustment {
 				return nil, inerr.NewErrValidation("type", "invalid transaction type")
 			}
@@ -159,13 +163,13 @@ func (u *GetStatsBySubcategoryUsecase) GetStatsBySubcategory(
 
 	// Build response
 	response := &SubcategoryStatsView{
-		From:  from,
-		To:    to,
+		From:  query.From,
+		To:    query.To,
 		Items: make([]SubcategoryStatsItem, 0, len(items)),
 	}
 
-	if trnType != "" {
-		response.Type = trnType
+	if query.Type != "" {
+		response.Type = query.Type
 	}
 
 	scale := user.CurrencyCode.Scale()

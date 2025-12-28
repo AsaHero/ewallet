@@ -978,7 +978,7 @@ paths:
         in: query
         items:
           type: string
-        name: account_ids[]
+        name: account_ids
         type: array
       - description: Transaction Type (deposit/withdrawal)
         in: query
@@ -1022,14 +1022,14 @@ paths:
         in: query
         items:
           type: string
-        name: account_ids[]
+        name: account_ids
         type: array
       - collectionFormat: csv
         description: Category IDs
         in: query
         items:
           type: integer
-        name: category_ids[]
+        name: category_ids
         type: array
       - description: Transaction Type (deposit/withdrawal)
         in: query
@@ -1084,7 +1084,7 @@ paths:
         in: query
         items:
           type: string
-        name: account_ids[]
+        name: account_ids
         type: array
       - description: Transaction Type (deposit/withdrawal)
         in: query
@@ -1133,14 +1133,21 @@ paths:
         in: query
         items:
           type: string
-        name: account_ids[]
+        name: account_ids
         type: array
       - collectionFormat: csv
         description: Category IDs
         in: query
         items:
           type: integer
-        name: category_ids[]
+        name: category_ids
+        type: array
+      - collectionFormat: csv
+        description: Subcategory IDs
+        in: query
+        items:
+          type: integer
+        name: subcategory_ids
         type: array
       - description: Transaction Type (deposit/withdrawal/transfer/adjustment)
         in: query
@@ -1270,6 +1277,13 @@ paths:
         items:
           type: integer
         name: category_ids
+        type: array
+      - collectionFormat: csv
+        description: subcategory ids
+        in: query
+        items:
+          type: integer
+        name: subcategory_ids
         type: array
       - collectionFormat: csv
         description: account ids

@@ -122,6 +122,10 @@ func (r *transactionsRepo) GetByFilter(ctx context.Context, filter *entities.Tra
 		query = query.Where("category_id IN (?)", bun.In(filter.CategoryIDs))
 	}
 
+	if len(filter.SubcategoryIDs) > 0 {
+		query = query.Where("subcategory_id IN (?)", bun.In(filter.SubcategoryIDs))
+	}
+
 	if filter.MinAmount != nil {
 		query = query.Where("amount >= ?", *filter.MinAmount)
 	}
@@ -447,6 +451,10 @@ func (r *transactionsRepo) GetFilterTotals(ctx context.Context, filter *entities
 		query = query.Where("category_id IN (?)", bun.In(filter.CategoryIDs))
 	}
 
+	if len(filter.SubcategoryIDs) > 0 {
+		query = query.Where("subcategory_id IN (?)", bun.In(filter.SubcategoryIDs))
+	}
+
 	if filter.MinAmount != nil {
 		query = query.Where("amount >= ?", *filter.MinAmount)
 	}
@@ -523,6 +531,10 @@ func (r *transactionsRepo) GetTimeseriesStats(ctx context.Context, filter *entit
 
 	if len(filter.CategoryIDs) > 0 {
 		query = query.Where("category_id IN (?)", bun.In(filter.CategoryIDs))
+	}
+
+	if len(filter.SubcategoryIDs) > 0 {
+		query = query.Where("subcategory_id IN (?)", bun.In(filter.SubcategoryIDs))
 	}
 
 	if filter.Type != nil {

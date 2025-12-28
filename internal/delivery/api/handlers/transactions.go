@@ -96,6 +96,7 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 // @Param        to           query    string false "to date (ISO 8601)"
 // @Param        type         query    string false "transaction type"
 // @Param        category_ids query    []int false "category ids"
+// @Param        subcategory_ids query []int false "subcategory ids"
 // @Param        account_ids  query    []string false "account ids"
 // @Param        min_amount   query    int false "min amount"
 // @Param        max_amount   query    int false "max amount"

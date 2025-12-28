@@ -595,7 +595,7 @@ const docTemplate = `{
                         },
                         "collectionFormat": "csv",
                         "description": "Account IDs",
-                        "name": "account_ids[]",
+                        "name": "account_ids",
                         "in": "query"
                     },
                     {
@@ -663,7 +663,7 @@ const docTemplate = `{
                         },
                         "collectionFormat": "csv",
                         "description": "Account IDs",
-                        "name": "account_ids[]",
+                        "name": "account_ids",
                         "in": "query"
                     },
                     {
@@ -673,7 +673,7 @@ const docTemplate = `{
                         },
                         "collectionFormat": "csv",
                         "description": "Category IDs",
-                        "name": "category_ids[]",
+                        "name": "category_ids",
                         "in": "query"
                     },
                     {
@@ -757,7 +757,7 @@ const docTemplate = `{
                         },
                         "collectionFormat": "csv",
                         "description": "Account IDs",
-                        "name": "account_ids[]",
+                        "name": "account_ids",
                         "in": "query"
                     },
                     {
@@ -832,7 +832,7 @@ const docTemplate = `{
                         },
                         "collectionFormat": "csv",
                         "description": "Account IDs",
-                        "name": "account_ids[]",
+                        "name": "account_ids",
                         "in": "query"
                     },
                     {
@@ -842,7 +842,17 @@ const docTemplate = `{
                         },
                         "collectionFormat": "csv",
                         "description": "Category IDs",
-                        "name": "category_ids[]",
+                        "name": "category_ids",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Subcategory IDs",
+                        "name": "subcategory_ids",
                         "in": "query"
                     },
                     {
@@ -1048,6 +1058,16 @@ const docTemplate = `{
                         "collectionFormat": "csv",
                         "description": "category ids",
                         "name": "category_ids",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "subcategory ids",
+                        "name": "subcategory_ids",
                         "in": "query"
                     },
                     {

@@ -233,17 +233,18 @@ func (t *Transaction) Update(
 // Repository
 
 type TransactionFilter struct {
-	UserID      uuid.UUID
-	Limit       int
-	Offset      int
-	Types       []TrnType
-	AccountIDs  []uuid.UUID
-	CategoryIDs []int
-	MinAmount   *int64
-	MaxAmount   *int64
-	From        *time.Time
-	To          *time.Time
-	Search      *string
+	UserID         uuid.UUID
+	Limit          int
+	Offset         int
+	Types          []TrnType
+	AccountIDs     []uuid.UUID
+	CategoryIDs    []int
+	SubcategoryIDs []int
+	MinAmount      *int64
+	MaxAmount      *int64
+	From           *time.Time
+	To             *time.Time
+	Search         *string
 }
 
 type CategoryStatsItem struct {
@@ -276,13 +277,14 @@ type TimeseriesPoint struct {
 }
 
 type TimeseriesFilter struct {
-	UserID      uuid.UUID
-	From        time.Time
-	To          time.Time
-	AccountIDs  []uuid.UUID
-	CategoryIDs []int
-	Type        *TrnType
-	GroupBy     string // "day", "week", or "month"
+	UserID         uuid.UUID
+	From           time.Time
+	To             time.Time
+	AccountIDs     []uuid.UUID
+	CategoryIDs    []int
+	SubcategoryIDs []int
+	Type           *TrnType
+	GroupBy        string // "day", "week", or "month"
 }
 
 type TransactionRepository interface {

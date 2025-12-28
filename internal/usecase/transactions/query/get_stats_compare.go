@@ -40,6 +40,17 @@ func NewGetStatsCompareUsecase(
 	}
 }
 
+type GetStatsCompareQuery struct {
+	Period      string   `form:"period"`
+	BaseFrom    string   `form:"base_from"`
+	BaseTo      string   `form:"base_to"`
+	CompareFrom string   `form:"compare_from"`
+	CompareTo   string   `form:"compare_to"`
+	AccountIDs  []string `form:"account_ids"`
+	Type        string   `form:"type"`
+	TopLimit    int      `form:"top_limit"`
+}
+
 type StatsCompareView struct {
 	Base       PeriodStats `json:"base"`
 	Compare    PeriodStats `json:"compare"`
@@ -84,21 +95,14 @@ type CategoryChange struct {
 func (u *GetStatsCompareUsecase) GetStatsCompare(
 	ctx context.Context,
 	userID string,
-	period string,
-	baseFrom string,
-	baseTo string,
-	compareFrom string,
-	compareTo string,
-	accountIDs []string,
-	trnType string,
-	topLimit int,
+	query *GetStatsCompareQuery,
 ) (_ *StatsCompareView, err error) {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
 	ctx, end := otlp.Start(ctx, otel.Tracer("transactions"), "GetStatsCompare",
 		attribute.String("user_id", userID),
-		attribute.String("period", period),
+		attribute.String("period", query.Period),
 	)
 	defer func() { end(err) }()
 
@@ -123,31 +127,31 @@ func (u *GetStatsCompareUsecase) GetStatsCompare(
 		}
 
 		// Determine periods
-		if period != "" {
-			input.baseFrom, input.baseTo, input.compareFrom, input.compareTo = u.calculatePeriods(period)
+		if query.Period != "" {
+			input.baseFrom, input.baseTo, input.compareFrom, input.compareTo = u.calculatePeriods(query.Period)
 		} else {
 			// Custom periods
-			if baseFrom == "" || baseTo == "" || compareFrom == "" || compareTo == "" {
+			if query.BaseFrom == "" || query.BaseTo == "" || query.CompareFrom == "" || query.CompareTo == "" {
 				return nil, inerr.NewErrValidation("period", "either period or all custom dates (base_from, base_to, compare_from, compare_to) required")
 			}
 
-			input.baseFrom, err = time.Parse(time.DateOnly, baseFrom)
+			input.baseFrom, err = time.Parse(time.DateOnly, query.BaseFrom)
 			if err != nil {
 				return nil, inerr.NewErrValidation("base_from", "invalid date format, use YYYY-MM-DD")
 			}
 
-			input.baseTo, err = time.Parse(time.DateOnly, baseTo)
+			input.baseTo, err = time.Parse(time.DateOnly, query.BaseTo)
 			if err != nil {
 				return nil, inerr.NewErrValidation("base_to", "invalid date format, use YYYY-MM-DD")
 			}
 			input.baseTo = utils.EndOfDate(input.baseTo)
 
-			input.compareFrom, err = time.Parse(time.DateOnly, compareFrom)
+			input.compareFrom, err = time.Parse(time.DateOnly, query.CompareFrom)
 			if err != nil {
 				return nil, inerr.NewErrValidation("compare_from", "invalid date format, use YYYY-MM-DD")
 			}
 
-			input.compareTo, err = time.Parse(time.DateOnly, compareTo)
+			input.compareTo, err = time.Parse(time.DateOnly, query.CompareTo)
 			if err != nil {
 				return nil, inerr.NewErrValidation("compare_to", "invalid date format, use YYYY-MM-DD")
 			}
@@ -155,9 +159,9 @@ func (u *GetStatsCompareUsecase) GetStatsCompare(
 		}
 
 		// Parse account IDs
-		if len(accountIDs) > 0 {
-			input.accountIDs = make([]uuid.UUID, 0, len(accountIDs))
-			for _, idStr := range accountIDs {
+		if len(query.AccountIDs) > 0 {
+			input.accountIDs = make([]uuid.UUID, 0, len(query.AccountIDs))
+			for _, idStr := range query.AccountIDs {
 				accountID, err := uuid.Parse(idStr)
 				if err != nil {
 					u.logger.ErrorContext(ctx, "failed to parse account id", err)
@@ -168,8 +172,8 @@ func (u *GetStatsCompareUsecase) GetStatsCompare(
 		}
 
 		// Parse transaction type
-		if trnType != "" {
-			t := entities.TrnType(trnType)
+		if query.Type != "" {
+			t := entities.TrnType(query.Type)
 			if t != entities.Deposit && t != entities.Withdrawal {
 				return nil, inerr.NewErrValidation("type", "invalid transaction type, must be deposit or withdrawal")
 			}
@@ -177,10 +181,10 @@ func (u *GetStatsCompareUsecase) GetStatsCompare(
 		}
 
 		// Set top limit
-		if topLimit <= 0 {
-			topLimit = 5
+		if query.TopLimit <= 0 {
+			query.TopLimit = 5
 		}
-		input.topLimit = topLimit
+		input.topLimit = query.TopLimit
 	}
 
 	// Get user for currency conversion
