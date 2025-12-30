@@ -90,8 +90,12 @@ func (t *Transaction) Categorise(category *Category, subcategory *Subcategory) e
 }
 
 func (t *Transaction) SetAmountMajor(major float64, currency Currency) error {
-	if major < 0 {
+	if t.Type == Deposit && major < 0 {
 		return fmt.Errorf("amount must be > 0")
+	}
+
+	if t.Type == Withdrawal && major > 0 {
+		return fmt.Errorf("amount must be < 0")
 	}
 
 	if currency == "" {
@@ -104,8 +108,12 @@ func (t *Transaction) SetAmountMajor(major float64, currency Currency) error {
 }
 
 func (t *Transaction) SetAmountMinor(minor int64, currency Currency) error {
-	if minor < 0 {
+	if t.Type == Deposit && minor < 0 {
 		return fmt.Errorf("amount must be > 0")
+	}
+
+	if t.Type == Withdrawal && minor > 0 {
+		return fmt.Errorf("amount must be < 0")
 	}
 
 	if currency == "" {
@@ -126,8 +134,12 @@ func (t *Transaction) AmountMajor() float64 {
 }
 
 func (t *Transaction) SetOriginalAmountMajor(major float64, currency Currency) error {
-	if major < 0 {
+	if t.Type == Deposit && major < 0 {
 		return fmt.Errorf("amount must be > 0")
+	}
+
+	if t.Type == Withdrawal && major > 0 {
+		return fmt.Errorf("amount must be < 0")
 	}
 
 	if currency == "" {
@@ -140,8 +152,12 @@ func (t *Transaction) SetOriginalAmountMajor(major float64, currency Currency) e
 }
 
 func (t *Transaction) SetOriginalAmountMinor(minor int64, currency Currency) error {
-	if minor < 0 {
+	if t.Type == Deposit && minor < 0 {
 		return fmt.Errorf("amount must be > 0")
+	}
+
+	if t.Type == Withdrawal && minor > 0 {
+		return fmt.Errorf("amount must be < 0")
 	}
 
 	if currency == "" {
