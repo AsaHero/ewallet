@@ -3,7 +3,6 @@ package entities
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,19 +34,11 @@ func NewAccount(userID uuid.UUID, name string) (*Account, error) {
 }
 
 func (t *Account) SetAmountMajor(major float64, currency Currency) error {
-	if major < 0 {
-		return fmt.Errorf("amount must be > 0")
-	}
-
 	t.Balance = MinorFromMajor(major, currency.Scale())
 	return nil
 }
 
 func (t *Account) SetAmountMinor(minor int64, currency Currency) error {
-	if minor < 0 {
-		return fmt.Errorf("amount must be > 0")
-	}
-
 	t.Balance = minor
 	return nil
 }
@@ -75,13 +66,8 @@ func (t *Account) ApplyTransaction(transaction *Transaction) error {
 		return nil
 	}
 
-	switch transaction.Type {
-	case Deposit:
-		t.Balance += transaction.AmountMinor()
-	case Withdrawal:
-		t.Balance -= transaction.AmountMinor()
-	}
-
+	// Transaction amount is signed: positive for deposit, negative for withdrawal
+	t.Balance += transaction.AmountMinor()
 	t.UpdatedAt = time.Now()
 
 	return nil
@@ -92,13 +78,8 @@ func (t *Account) RevertTransaction(transaction *Transaction) error {
 		return nil
 	}
 
-	switch transaction.Type {
-	case Deposit:
-		t.Balance -= transaction.AmountMinor()
-	case Withdrawal:
-		t.Balance += transaction.AmountMinor()
-	}
-
+	// Transaction amount is signed: reverse by subtracting
+	t.Balance -= transaction.AmountMinor()
 	t.UpdatedAt = time.Now()
 
 	return nil

@@ -515,9 +515,9 @@ func (r *transactionsRepo) GetTimeseriesStats(ctx context.Context, filter *entit
 	query := db.NewSelect().
 		Model((*Transactions)(nil)).
 		ColumnExpr("DATE_TRUNC(?, created_at) as ts", dateTrunc).
-		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as income", entities.Deposit.String()).
-		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as expense", entities.Withdrawal.String()).
-		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE -amount END), 0) as net", entities.Deposit.String()).
+		ColumnExpr("COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as income").
+		ColumnExpr("COALESCE(ABS(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END)), 0) as expense").
+		ColumnExpr("COALESCE(SUM(amount), 0) as net").
 		ColumnExpr("COUNT(*) as count").
 		Where("user_id = ?", filter.UserID.String()).
 		Where("created_at >= ?", filter.From).
@@ -672,9 +672,9 @@ func (r *transactionsRepo) GetStatsByAccount(ctx context.Context, userID uuid.UU
 	query := db.NewSelect().
 		Model((*Transactions)(nil)).
 		Column("account_id").
-		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as income", entities.Deposit.String()).
-		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as expense", entities.Withdrawal.String()).
-		ColumnExpr("COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE -amount END), 0) as net", entities.Deposit.String()).
+		ColumnExpr("COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as income").
+		ColumnExpr("COALESCE(ABS(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END)), 0) as expense").
+		ColumnExpr("COALESCE(SUM(amount), 0) as net").
 		ColumnExpr("COUNT(*) as count").
 		Where("user_id = ?", userID.String()).
 		Where("created_at >= ?", from).
