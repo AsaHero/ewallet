@@ -35,7 +35,7 @@ You are a deterministic financial transaction category classifier used in a pers
 TASK
 Given a short transaction text (possibly noisy, multilingual, slang), choose the single best category_id and (optionally) subcategory_id.
 
-INPUT 
+INPUT
 1) AVAILABLE CATEGORIES & SUBCATEGORIES:
 - Category ID <number>: <string>
   - Subcategory ID <number>: <string>
@@ -108,7 +108,7 @@ FIELD RULES
 - If unclear, choose the most conservative interpretation and lower confidence.
 
 2) amount:
-- Positive float number.
+- Signed float number. Positive for deposits, negative for withdrawals.
 - Extract the primary amount from the text.
 - Support shorthand: "k"=thousand, "m"=million if present in input language patterns.
 - Ignore currency symbols/words in amount extraction.
@@ -153,10 +153,10 @@ TRANSACTION TEXT:
 Assosy kartadan 755k бензин
 
 OUTPUT:
-{ 
+{
   "type":"withdrawal",
-  "amount":755000, 
-  "currency":"UZS", 
+  "amount":-755000,
+  "currency":"UZS",
   "account_id":"15372648-53b3-4415-897e-fb0998798807",
   "note":"Benzin",
   "confidence":0.93,
@@ -179,7 +179,7 @@ Paid hosting 50.67 USD
 OUTPUT:
 {
   "type":"withdrawal",
-  "amount":50.67,
+  "amount":-50.67,
   "currency":"USD",
   "account_id":null,
   "note":"Hosting payment",
@@ -199,16 +199,16 @@ USER CONTEXT:
 - Current datetime: 2025-12-14T19:26:00Z
 
 TRANSACTION TEXT:
-755k сум бензин
+12335150.50 сум получил зарплату
 
 OUTPUT:
 {
-  "type":"withdrawal",
-  "amount":755000,
+  "type":"deposit",
+  "amount":12335150.50,
   "currency":"UZS",
   "account_id":null,
-  "note":"Benzin",
-  "confidence":0.90,
+  "note":"Зарплата",
+  "confidence":0.95,
   "performed_at":null
 }
 
@@ -232,7 +232,7 @@ TOTAL 18000.60
 OUTPUT:
 {
   "type":"withdrawal",
-  "amount":18000,
+  "amount":-18000.60,
   "currency":"UZS",
   "account_id":null,
   "note":"Magnum: milk, bread",
@@ -249,7 +249,7 @@ func NewTransactionDetailsPrompt(payment UserPayment) string {
 	}
 
 	return fmt.Sprintf(`
-USER CONTEXT
+USER CONTEXT:
 - Language: %s
 - Default Currency: %s
 - Timezone: %s
@@ -257,9 +257,29 @@ USER CONTEXT
 - Accounts:
 %s
 
-INPUT TEXT
+TRANSACTION TEXT:
 %s
 `, payment.Language, payment.Currency, payment.Timezone, time.Now().UTC().Format(time.RFC3339), accounts, payment.PaymentText)
+}
+
+func NewReceiptDetailsPrompt(receipt UserPayment) string {
+	accounts := ""
+	for _, acc := range receipt.Accounts {
+		accounts += fmt.Sprintf("- ID %s: %s\n", acc.ID, acc.Name)
+	}
+
+	return fmt.Sprintf(`
+USER CONTEXT:
+- Language: %s
+- Default Currency: %s
+- Timezone: %s
+- Current Time (UTC): %s
+- Accounts:
+%s
+
+RECEIPT TEXT:
+%s
+`, receipt.Language, receipt.Currency, receipt.Timezone, time.Now().UTC().Format(time.RFC3339), accounts, receipt.PaymentText)
 }
 
 func NewOcrParserMessagePrompt(ocr_text string) string {

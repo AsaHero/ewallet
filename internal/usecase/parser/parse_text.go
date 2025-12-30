@@ -192,7 +192,7 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 			})
 		}
 
-		prompt := NewTransactionDetailsPrompt(userPayment)
+		prompt := NewReceiptDetailsPrompt(userPayment)
 		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, TransactionDetailsSystemMessage, prompt)
 		if err != nil {
 			p.logger.ErrorContext(ctx, "failed to get details", err)
