@@ -19,6 +19,7 @@ type DeleteTransactionUsecase struct {
 	logger           *logger.Logger
 	txManager        postgres.TxManager
 	accountsRepo     entities.AccountRepository
+	accountsService  *entities.AccountsService
 	transactionsRepo entities.TransactionRepository
 }
 
@@ -27,6 +28,7 @@ func NewDeleteTransactionUsecase(
 	logger *logger.Logger,
 	txManager postgres.TxManager,
 	accountsRepo entities.AccountRepository,
+	accountsService *entities.AccountsService,
 	transactionsRepo entities.TransactionRepository,
 ) *DeleteTransactionUsecase {
 	return &DeleteTransactionUsecase{
@@ -34,6 +36,7 @@ func NewDeleteTransactionUsecase(
 		logger:           logger,
 		txManager:        txManager,
 		accountsRepo:     accountsRepo,
+		accountsService:  accountsService,
 		transactionsRepo: transactionsRepo,
 	}
 }
@@ -86,15 +89,9 @@ func (c *DeleteTransactionUsecase) DeleteTransaction(ctx context.Context, cmd *D
 			return err
 		}
 
-		err = account.RevertTransaction(transaction)
+		err = c.accountsService.RevertTransaction(ctx, account, transaction)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to revert transaction", err)
-			return err
-		}
-
-		err = c.accountsRepo.Save(ctx, account)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to save account", err)
 			return err
 		}
 

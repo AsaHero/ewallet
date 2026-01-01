@@ -36,7 +36,7 @@ func NewModule(
 ) *Module {
 	m := &Module{
 		Command: Commands{
-			CreateAccountUsecase: command.NewCreateAccountUsecase(timeout, logger, usersRepo, accountsRepo, trnasctionsRepo, categoriesRepo),
+			CreateAccountUsecase: command.NewCreateAccountUsecase(timeout, logger, usersRepo, accountsRepo, accountsDomainService, trnasctionsRepo, categoriesRepo),
 			UpdateAccountUsecase: command.NewUpdateAccountUsecase(timeout, logger, usersRepo, accountsRepo, accountsDomainService),
 			DeleteAccountUsecase: command.NewDeleteAccountUsecase(timeout, logger, usersRepo, accountsRepo),
 		},

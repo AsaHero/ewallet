@@ -18,6 +18,7 @@ type CreateAccountUsecase struct {
 	logger           *logger.Logger
 	usersRepo        entities.UserRepository
 	accountsRepo     entities.AccountRepository
+	accountsService  *entities.AccountsService
 	transactionsRepo entities.TransactionRepository
 	categoryRepo     entities.CategoryRepository
 }
@@ -27,6 +28,7 @@ func NewCreateAccountUsecase(
 	logger *logger.Logger,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
+	accountsService *entities.AccountsService,
 	transactionsRepo entities.TransactionRepository,
 	categoryRepo entities.CategoryRepository,
 ) *CreateAccountUsecase {
@@ -34,6 +36,7 @@ func NewCreateAccountUsecase(
 		contextTimeout:   timeout,
 		usersRepo:        usersRepo,
 		accountsRepo:     accountsRepo,
+		accountsService:  accountsService,
 		transactionsRepo: transactionsRepo,
 		categoryRepo:     categoryRepo,
 		logger:           logger,
@@ -79,16 +82,17 @@ func (u *CreateAccountUsecase) CreateAccount(ctx context.Context, cmd *CreateAcc
 		u.logger.ErrorContext(ctx, "failed to create account", err)
 		return nil, err
 	}
-	account.SetAmountMajor(cmd.Balance, user.CurrencyCode)
 	account.UpdateDefault(cmd.IsDefault)
 
+	// Save account first (balance is 0 initially)
 	err = u.accountsRepo.Save(ctx, account)
 	if err != nil {
 		u.logger.ErrorContext(ctx, "failed to save account", err)
 		return nil, err
 	}
 
-	if account.Balance > 0 {
+	// If initial balance > 0, create a transaction and apply it with logging
+	if cmd.Balance > 0 {
 		otherCategory, err := u.categoryRepo.FindByID(ctx, entities.OtherCategory.Int())
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to get other category", err)
@@ -117,10 +121,19 @@ func (u *CreateAccountUsecase) CreateAccount(ctx context.Context, cmd *CreateAcc
 			u.logger.ErrorContext(ctx, "failed to set amount major", err)
 			return nil, err
 		}
+		transaction.Performed(time.Now())
 
+		// Save transaction first
 		err = u.transactionsRepo.Save(ctx, transaction)
 		if err != nil {
 			u.logger.ErrorContext(ctx, "failed to save transaction", err)
+			return nil, err
+		}
+
+		// Apply transaction to account and log balance change
+		err = u.accountsService.ApplyTransaction(ctx, account, transaction)
+		if err != nil {
+			u.logger.ErrorContext(ctx, "failed to apply initial balance", err)
 			return nil, err
 		}
 	}

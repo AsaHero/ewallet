@@ -20,6 +20,7 @@ type CreateTransactionUsecase struct {
 	txManager         postgres.TxManager
 	usersRepo         entities.UserRepository
 	accountsRepo      entities.AccountRepository
+	accountsService   *entities.AccountsService
 	transactionsRepo  entities.TransactionRepository
 	categoryRepo      entities.CategoryRepository
 	subcategoriesRepo entities.SubcategoryRepository
@@ -31,6 +32,7 @@ func NewCreateTransactionUsecase(
 	txManager postgres.TxManager,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
+	accountsService *entities.AccountsService,
 	transactionsRepo entities.TransactionRepository,
 	categoriesRepo entities.CategoryRepository,
 	subcategoriesRepo entities.SubcategoryRepository,
@@ -39,6 +41,7 @@ func NewCreateTransactionUsecase(
 		contextTimeout:    timeout,
 		usersRepo:         usersRepo,
 		accountsRepo:      accountsRepo,
+		accountsService:   accountsService,
 		transactionsRepo:  transactionsRepo,
 		categoryRepo:      categoriesRepo,
 		subcategoriesRepo: subcategoriesRepo,
@@ -179,15 +182,9 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 			transaction.Performed(time.Now())
 		}
 
-		err = account.ApplyTransaction(transaction)
+		err = c.accountsService.ApplyTransaction(ctx, account, transaction)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to apply transaction", err)
-			return err
-		}
-
-		err = c.accountsRepo.Save(ctx, account)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to create transaction", err)
 			return err
 		}
 

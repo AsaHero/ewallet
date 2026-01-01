@@ -20,6 +20,7 @@ type UpdateTransactionUsecase struct {
 	txManager         postgres.TxManager
 	usersRepo         entities.UserRepository
 	accountsRepo      entities.AccountRepository
+	accountsService   *entities.AccountsService
 	transactionsRepo  entities.TransactionRepository
 	categoryRepo      entities.CategoryRepository
 	subcategoriesRepo entities.SubcategoryRepository
@@ -31,6 +32,7 @@ func NewUpdateTransactionUsecase(
 	txManager postgres.TxManager,
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
+	accountsService *entities.AccountsService,
 	transactionsRepo entities.TransactionRepository,
 	categoriesRepo entities.CategoryRepository,
 	subcategoriesRepo entities.SubcategoryRepository,
@@ -39,6 +41,7 @@ func NewUpdateTransactionUsecase(
 		contextTimeout:    timeout,
 		usersRepo:         usersRepo,
 		accountsRepo:      accountsRepo,
+		accountsService:   accountsService,
 		transactionsRepo:  transactionsRepo,
 		categoryRepo:      categoriesRepo,
 		subcategoriesRepo: subcategoriesRepo,
@@ -157,15 +160,9 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 			return err
 		}
 
-		err = account.RevertTransaction(transaction)
+		err = c.accountsService.RevertTransaction(ctx, account, transaction)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to revert transaction", err)
-			return err
-		}
-
-		err = c.accountsRepo.Save(ctx, account)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to save account", err)
 			return err
 		}
 
@@ -198,15 +195,9 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 		}
 
 		// 4. Apply new transaction to account
-		err = account.ApplyTransaction(transaction)
+		err = c.accountsService.ApplyTransaction(ctx, account, transaction)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to apply transaction", err)
-			return err
-		}
-
-		err = c.accountsRepo.Save(ctx, account)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to save account", err)
 			return err
 		}
 

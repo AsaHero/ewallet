@@ -87,12 +87,17 @@ func (t *Account) RevertTransaction(transaction *Transaction) error {
 
 // Domain Service
 type AccountsService struct {
-	repo AccountRepository
+	repo           AccountRepository
+	balanceLogRepo AccountBalanceLogRepository
 }
 
-func NewAccountsService(repo AccountRepository) *AccountsService {
+func NewAccountsService(
+	repo AccountRepository,
+	balanceLogRepo AccountBalanceLogRepository,
+) *AccountsService {
 	return &AccountsService{
-		repo: repo,
+		repo:           repo,
+		balanceLogRepo: balanceLogRepo,
 	}
 }
 
@@ -120,6 +125,104 @@ func (s *AccountsService) MakeDefault(ctx context.Context, account *Account) err
 	}
 
 	return err
+}
+
+// ApplyTransaction applies a transaction to an account and logs the balance change
+func (s *AccountsService) ApplyTransaction(
+	ctx context.Context,
+	account *Account,
+	transaction *Transaction,
+) error {
+	if account == nil || transaction == nil {
+		return errors.New("account and transaction must not be nil")
+	}
+
+	// Capture balance before applying transaction
+	balanceBefore := account.Balance
+
+	// Apply transaction to account
+	err := account.ApplyTransaction(transaction)
+	if err != nil {
+		return err
+	}
+
+	// Capture balance after applying transaction
+	balanceAfter := account.Balance
+
+	// Create and save balance log
+	balanceLog, err := NewAccountBalanceLog(
+		account.UserID,
+		account.ID,
+		transaction.ID,
+		balanceBefore,
+		balanceAfter,
+		transaction.PerformedAt,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = s.balanceLogRepo.Save(ctx, balanceLog)
+	if err != nil {
+		return err
+	}
+
+	// Save updated account
+	err = s.repo.Save(ctx, account)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RevertTransaction reverts a transaction from an account and logs the balance change
+func (s *AccountsService) RevertTransaction(
+	ctx context.Context,
+	account *Account,
+	transaction *Transaction,
+) error {
+	if account == nil || transaction == nil {
+		return errors.New("account and transaction must not be nil")
+	}
+
+	// Capture balance before reverting transaction
+	balanceBefore := account.Balance
+
+	// Revert transaction from account
+	err := account.RevertTransaction(transaction)
+	if err != nil {
+		return err
+	}
+
+	// Capture balance after reverting transaction
+	balanceAfter := account.Balance
+
+	// Create and save balance log
+	balanceLog, err := NewAccountBalanceLog(
+		account.UserID,
+		account.ID,
+		transaction.ID,
+		balanceBefore,
+		balanceAfter,
+		transaction.PerformedAt,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = s.balanceLogRepo.Save(ctx, balanceLog)
+	if err != nil {
+		return err
+	}
+
+	// Save updated account
+	err = s.repo.Save(ctx, account)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Repository

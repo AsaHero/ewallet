@@ -127,15 +127,16 @@ func (a *App) Run() error {
 	// init repository
 	usersRepo := repository.NewUsersRepo(a.db)
 	accountsRepo := repository.NewAccountsRepo(a.db)
+	balanceLogRepo := repository.NewAccountBalanceLogRepo(a.db)
 	transactionsRepo := repository.NewTransactionsRepo(a.db, categoriesDict, subcategoriesDict)
 
 	// domain services
-	accountsDomainService := entities.NewAccountsService(accountsRepo)
+	accountsDomainService := entities.NewAccountsService(accountsRepo, balanceLogRepo)
 
 	// init usecases
 	usersUsecase := users.NewModule(a.config.Context.Timeout, a.logger, usersRepo)
 	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict)
-	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, transactionsRepo, categoriesDict, subcategoriesDict)
+	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict, subcategoriesDict)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict, subcategoriesDict, usersRepo)
 	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider, usersRepo, accountsRepo, categoriesDict, subcategoriesDict, currencyApiClient)
 	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, a.taskQueue, telegramBotService)
