@@ -182,15 +182,15 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 			transaction.Performed(time.Now())
 		}
 
-		err = c.accountsService.ApplyTransaction(ctx, account, transaction)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to apply transaction", err)
-			return err
-		}
-
 		err = c.transactionsRepo.Save(ctx, transaction)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to create transaction", err)
+			return err
+		}
+
+		err = c.accountsService.ApplyTransaction(ctx, account, transaction)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to apply transaction", err)
 			return err
 		}
 

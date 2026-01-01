@@ -194,17 +194,17 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 			}
 		}
 
-		// 4. Apply new transaction to account
-		err = c.accountsService.ApplyTransaction(ctx, account, transaction)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to apply transaction", err)
-			return err
-		}
-
 		// 5. Save transaction
 		err = c.transactionsRepo.Save(ctx, transaction)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to save transaction", err)
+			return err
+		}
+
+		// 6. Apply new transaction to account
+		err = c.accountsService.ApplyTransaction(ctx, account, transaction)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to apply transaction", err)
 			return err
 		}
 
