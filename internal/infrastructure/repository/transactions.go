@@ -578,15 +578,21 @@ func (r *transactionsRepo) GetStatsByCategory(ctx context.Context, userID uuid.U
 		Where("created_at >= ?", from).
 		Where("created_at < ?", to).
 		Where("category_id IS NOT NULL").
-		Group("category_id").
-		Order("total DESC")
+		Group("category_id")
 
 	if len(accountIDs) > 0 {
 		query = query.Where("account_id IN (?)", bun.In(accountIDs))
 	}
 
-	if trnType != nil {
+	if trnType == nil {
+		query = query.Order("total DESC")
+	} else {
 		query = query.Where("type = ?", trnType.String())
+		if *trnType == entities.Deposit {
+			query = query.Order("total DESC")
+		} else {
+			query = query.Order("total ASC")
+		}
 	}
 
 	err := query.Scan(ctx, &results)
@@ -625,8 +631,7 @@ func (r *transactionsRepo) GetStatsBySubcategory(ctx context.Context, userID uui
 		Where("created_at >= ?", from).
 		Where("created_at < ?", to).
 		Where("subcategory_id IS NOT NULL").
-		Group("subcategory_id", "category_id").
-		Order("total DESC")
+		Group("subcategory_id", "category_id")
 
 	if len(accountIDs) > 0 {
 		query = query.Where("account_id IN (?)", bun.In(accountIDs))
@@ -636,10 +641,16 @@ func (r *transactionsRepo) GetStatsBySubcategory(ctx context.Context, userID uui
 		query = query.Where("category_id IN (?)", bun.In(categoryIDs))
 	}
 
-	if trnType != nil {
+	if trnType == nil {
+		query = query.Order("total DESC")
+	} else {
 		query = query.Where("type = ?", trnType.String())
+		if *trnType == entities.Deposit {
+			query = query.Order("total DESC")
+		} else {
+			query = query.Order("total ASC")
+		}
 	}
-
 	err := query.Scan(ctx, &results)
 	if err != nil {
 		return nil, postgres.Error(err, Transactions{})
