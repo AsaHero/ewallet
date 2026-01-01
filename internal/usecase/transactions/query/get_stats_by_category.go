@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/AsaHero/e-wallet/internal/entities"
@@ -176,7 +177,8 @@ func (u *GetStatsByCategoryUsecase) GetStatsByCategory(
 			continue
 		}
 
-		totalMajor := entities.MajorFromMinor(item.Total, scale)
+		// Convert to major units and use absolute value (expenses are negative)
+		totalMajor := math.Abs(entities.MajorFromMinor(item.Total, scale))
 		totals.Total += totalMajor
 		totals.Count += item.Count
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/AsaHero/e-wallet/internal/delivery/api/apierr"
 	"github.com/AsaHero/e-wallet/internal/delivery/api/middleware"
+	accountsquery "github.com/AsaHero/e-wallet/internal/usecase/accounts/query"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions/query"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/form/v4"
@@ -212,6 +213,49 @@ func (h *Handlers) GetStatsCompare(c *gin.Context) {
 	}
 
 	response, err := h.TransactionsUsecase.Query.GetStatsCompare(ctx, userID, &query)
+	if err != nil {
+		apierr.Handle(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetBalanceTimeseries godoc
+// @Summary      Returns balance over time for accounts
+// @Tags         Stats
+// @Produce      json
+// @Security     BearerAuth
+// @Param        from query string true "From Date (YYYY-MM-DD)"
+// @Param        to query string true "To Date (YYYY-MM-DD)"
+// @Param        group_by query string false "Group by (day/week/month)" default(day)
+// @Param        account_ids query []string false "Account IDs"
+// @Param        mode query string false "Mode (aggregate/per_account)" default(aggregate)
+// @Success      200 {object} accountsquery.BalanceTimeseriesView
+// @Failure      400 {object} apierr.Response
+// @Failure      401 {object} apierr.Response
+// @Router       /stats/timeseries/balance [get]
+func (h *Handlers) GetBalanceTimeseries(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		apierr.Unauthorized(c, "user context is missing")
+		return
+	}
+
+	var query accountsquery.GetBalanceTimeseriesQuery
+	if err := form.NewDecoder().Decode(&query, c.Request.URL.Query()); err != nil {
+		apierr.BadRequest(c, "invalid query parameters", err)
+		return
+	}
+
+	if err := h.Validator.Validate(&query); err != nil {
+		apierr.BadRequest(c, "invalid query parameters", err)
+		return
+	}
+
+	response, err := h.AccountsUsecase.Query.GetBalanceTimeseries(ctx, userID, &query)
 	if err != nil {
 		apierr.Handle(c, err)
 		return

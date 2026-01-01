@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/AsaHero/e-wallet/internal/entities"
@@ -154,8 +155,9 @@ func (u *GetStatsByAccountUsecase) GetStatsByAccount(
 			continue
 		}
 
+		// Expenses come as negative, convert to absolute values for display
 		incomeMajor := entities.MajorFromMinor(item.Income, scale)
-		expenseMajor := entities.MajorFromMinor(item.Expense, scale)
+		expenseMajor := math.Abs(entities.MajorFromMinor(item.Expense, scale))
 		netMajor := entities.MajorFromMinor(item.Net, scale)
 
 		totals.Income += incomeMajor

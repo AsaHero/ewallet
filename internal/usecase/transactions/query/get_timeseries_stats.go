@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"math"
 	"strconv"
 	"time"
 
@@ -219,10 +220,11 @@ func (u *GetTimeseriesStatsUsecase) GetTimeseriesStats(
 	scale := user.CurrencyCode.Scale()
 
 	for _, point := range points {
+		// Expense comes as negative, convert to absolute value for display
 		dataPoint := TimeseriesDataPoint{
 			Timestamp: point.Timestamp,
 			Income:    entities.MajorFromMinor(point.Income, scale),
-			Expense:   entities.MajorFromMinor(point.Expense, scale),
+			Expense:   math.Abs(entities.MajorFromMinor(point.Expense, scale)),
 			Net:       entities.MajorFromMinor(point.Net, scale),
 			Count:     point.Count,
 		}

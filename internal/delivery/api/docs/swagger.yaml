@@ -364,6 +364,17 @@ definitions:
       type:
         type: string
     type: object
+  query.AccountBalanceSeriesView:
+    properties:
+      account_id:
+        type: string
+      points:
+        items:
+          $ref: '#/definitions/query.BalanceTimeseriesPointView'
+        type: array
+      totals:
+        $ref: '#/definitions/query.BalanceTimeseriesTotalsView'
+    type: object
   query.AccountStatsItem:
     properties:
       account_id:
@@ -402,6 +413,65 @@ definitions:
         type: string
       totals:
         $ref: '#/definitions/query.AccountStatsTotals'
+    type: object
+  query.BalanceTimeseriesPointView:
+    properties:
+      balance_close:
+        type: number
+      balance_open:
+        type: number
+      delta:
+        type: number
+      max_balance:
+        type: number
+      min_balance:
+        type: number
+      ts:
+        type: string
+      tx_count:
+        type: integer
+    type: object
+  query.BalanceTimeseriesTotalsView:
+    properties:
+      change:
+        type: number
+      end_balance:
+        type: number
+      max_balance:
+        type: number
+      min_balance:
+        type: number
+      start_balance:
+        type: number
+      tx_count:
+        type: integer
+    type: object
+  query.BalanceTimeseriesView:
+    properties:
+      account_ids:
+        items:
+          type: string
+        type: array
+      from:
+        type: string
+      group_by:
+        type: string
+      mode:
+        type: string
+      points:
+        description: for aggregate mode
+        items:
+          $ref: '#/definitions/query.BalanceTimeseriesPointView'
+        type: array
+      series:
+        description: for per_account mode
+        items:
+          $ref: '#/definitions/query.AccountBalanceSeriesView'
+        type: array
+      to:
+        type: string
+      totals:
+        $ref: '#/definitions/query.BalanceTimeseriesTotalsView'
     type: object
   query.Category:
     properties:
@@ -1176,6 +1246,56 @@ paths:
       security:
       - BearerAuth: []
       summary: Returns time-series aggregated statistics
+      tags:
+      - Stats
+  /stats/timeseries/balance:
+    get:
+      parameters:
+      - description: From Date (YYYY-MM-DD)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To Date (YYYY-MM-DD)
+        in: query
+        name: to
+        required: true
+        type: string
+      - default: day
+        description: Group by (day/week/month)
+        in: query
+        name: group_by
+        type: string
+      - collectionFormat: csv
+        description: Account IDs
+        in: query
+        items:
+          type: string
+        name: account_ids
+        type: array
+      - default: aggregate
+        description: Mode (aggregate/per_account)
+        in: query
+        name: mode
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/query.BalanceTimeseriesView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns balance over time for accounts
       tags:
       - Stats
   /subcategories:

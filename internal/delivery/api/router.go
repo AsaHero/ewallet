@@ -114,6 +114,7 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 
 			// Stats routes
 			protected.GET("/stats/timeseries", h.GetTimeseriesStats)
+			protected.GET("/stats/timeseries/balance", h.GetBalanceTimeseries)
 			protected.GET("/stats/by-category", h.GetStatsByCategory)
 			protected.GET("/stats/by-subcategory", h.GetStatsBySubcategory)
 			protected.GET("/stats/by-account", h.GetStatsByAccount)

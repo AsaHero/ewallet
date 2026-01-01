@@ -516,7 +516,7 @@ func (r *transactionsRepo) GetTimeseriesStats(ctx context.Context, filter *entit
 		Model((*Transactions)(nil)).
 		ColumnExpr("DATE_TRUNC(?, created_at) as ts", dateTrunc).
 		ColumnExpr("COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as income").
-		ColumnExpr("COALESCE(ABS(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END)), 0) as expense").
+		ColumnExpr("COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0) as expense").
 		ColumnExpr("COALESCE(SUM(amount), 0) as net").
 		ColumnExpr("COUNT(*) as count").
 		Where("user_id = ?", filter.UserID.String()).
@@ -673,7 +673,7 @@ func (r *transactionsRepo) GetStatsByAccount(ctx context.Context, userID uuid.UU
 		Model((*Transactions)(nil)).
 		Column("account_id").
 		ColumnExpr("COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as income").
-		ColumnExpr("COALESCE(ABS(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END)), 0) as expense").
+		ColumnExpr("COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0) as expense").
 		ColumnExpr("COALESCE(SUM(amount), 0) as net").
 		ColumnExpr("COUNT(*) as count").
 		Where("user_id = ?", userID.String()).

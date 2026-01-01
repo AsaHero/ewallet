@@ -18,6 +18,7 @@ type Commands struct {
 
 type Query struct {
 	*query.GetAccountsByUserIDUsecase
+	*query.GetBalanceTimeseriesUsecase
 }
 
 type Module struct {
@@ -31,6 +32,7 @@ func NewModule(
 	usersRepo entities.UserRepository,
 	accountsRepo entities.AccountRepository,
 	accountsDomainService *entities.AccountsService,
+	balanceLogRepo entities.AccountBalanceLogRepository,
 	trnasctionsRepo entities.TransactionRepository,
 	categoriesRepo entities.CategoryRepository,
 ) *Module {
@@ -41,7 +43,8 @@ func NewModule(
 			DeleteAccountUsecase: command.NewDeleteAccountUsecase(timeout, logger, usersRepo, accountsRepo),
 		},
 		Query: Query{
-			GetAccountsByUserIDUsecase: query.NewGetAccountsByUserIDUsecase(timeout, logger, accountsRepo),
+			GetAccountsByUserIDUsecase:  query.NewGetAccountsByUserIDUsecase(timeout, logger, accountsRepo),
+			GetBalanceTimeseriesUsecase: query.NewGetBalanceTimeseriesUsecase(timeout, logger, usersRepo, accountsRepo, balanceLogRepo),
 		},
 	}
 

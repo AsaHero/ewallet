@@ -884,6 +884,82 @@
                 }
             }
         },
+        "/stats/timeseries/balance": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Returns balance over time for accounts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "From Date (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "To Date (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "day",
+                        "description": "Group by (day/week/month)",
+                        "name": "group_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Account IDs",
+                        "name": "account_ids",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "aggregate",
+                        "description": "Mode (aggregate/per_account)",
+                        "name": "mode",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/query.BalanceTimeseriesView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/subcategories": {
             "get": {
                 "security": [
@@ -1933,6 +2009,23 @@
                 }
             }
         },
+        "query.AccountBalanceSeriesView": {
+            "type": "object",
+            "properties": {
+                "account_id": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/query.BalanceTimeseriesPointView"
+                    }
+                },
+                "totals": {
+                    "$ref": "#/definitions/query.BalanceTimeseriesTotalsView"
+                }
+            }
+        },
         "query.AccountStatsItem": {
             "type": "object",
             "properties": {
@@ -1990,6 +2083,95 @@
                 },
                 "totals": {
                     "$ref": "#/definitions/query.AccountStatsTotals"
+                }
+            }
+        },
+        "query.BalanceTimeseriesPointView": {
+            "type": "object",
+            "properties": {
+                "balance_close": {
+                    "type": "number"
+                },
+                "balance_open": {
+                    "type": "number"
+                },
+                "delta": {
+                    "type": "number"
+                },
+                "max_balance": {
+                    "type": "number"
+                },
+                "min_balance": {
+                    "type": "number"
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "tx_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "query.BalanceTimeseriesTotalsView": {
+            "type": "object",
+            "properties": {
+                "change": {
+                    "type": "number"
+                },
+                "end_balance": {
+                    "type": "number"
+                },
+                "max_balance": {
+                    "type": "number"
+                },
+                "min_balance": {
+                    "type": "number"
+                },
+                "start_balance": {
+                    "type": "number"
+                },
+                "tx_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "query.BalanceTimeseriesView": {
+            "type": "object",
+            "properties": {
+                "account_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "from": {
+                    "type": "string"
+                },
+                "group_by": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "points": {
+                    "description": "for aggregate mode",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/query.BalanceTimeseriesPointView"
+                    }
+                },
+                "series": {
+                    "description": "for per_account mode",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/query.AccountBalanceSeriesView"
+                    }
+                },
+                "to": {
+                    "type": "string"
+                },
+                "totals": {
+                    "$ref": "#/definitions/query.BalanceTimeseriesTotalsView"
                 }
             }
         },

@@ -50,4 +50,5 @@ type AccountBalanceLogRepository interface {
 	FindByID(ctx context.Context, id int64) (*AccountBalanceLog, error)
 	FindAllByAccountID(ctx context.Context, accountID uuid.UUID) ([]*AccountBalanceLog, error)
 	FindIntervalByAccountID(ctx context.Context, accountID uuid.UUID, from time.Time, to time.Time) ([]*AccountBalanceLog, error)
+	GetBalanceTimeseries(ctx context.Context, filter *BalanceTimeseriesFilter) (map[uuid.UUID][]BalanceTimeseriesPoint, error)
 }

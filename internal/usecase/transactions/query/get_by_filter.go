@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -213,8 +214,9 @@ func (u *GetByFilterUsecase) GetByFilter(ctx context.Context, userID string, que
 	if errTotals != nil {
 		u.logger.ErrorContext(ctx, "failed to get transaction totals", errTotals)
 	} else {
+		// Expenses come as negative, convert to absolute value for display
 		resp.TotalIncome = entities.MajorFromMinor(totals[entities.Deposit], user.CurrencyCode.Scale())
-		resp.TotalExpense = entities.MajorFromMinor(totals[entities.Withdrawal], user.CurrencyCode.Scale())
+		resp.TotalExpense = math.Abs(entities.MajorFromMinor(totals[entities.Withdrawal], user.CurrencyCode.Scale()))
 		resp.NetBalance = resp.TotalIncome - resp.TotalExpense
 	}
 

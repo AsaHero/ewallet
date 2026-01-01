@@ -347,14 +347,15 @@ func (u *GetStatsCompareUsecase) calculateTopChanges(
 		baseItem, hasBase := baseMap[categoryID]
 		compareItem, hasCompare := compareMap[categoryID]
 
+		// Use absolute values for expenses (they come as negative)
 		baseTotal := 0.0
 		if hasBase {
-			baseTotal = entities.MajorFromMinor(baseItem.Total, scale)
+			baseTotal = math.Abs(entities.MajorFromMinor(baseItem.Total, scale))
 		}
 
 		compareTotal := 0.0
 		if hasCompare {
-			compareTotal = entities.MajorFromMinor(compareItem.Total, scale)
+			compareTotal = math.Abs(entities.MajorFromMinor(compareItem.Total, scale))
 		}
 
 		deltaAbs := compareTotal - baseTotal

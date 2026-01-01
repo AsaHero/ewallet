@@ -135,7 +135,7 @@ func (a *App) Run() error {
 
 	// init usecases
 	usersUsecase := users.NewModule(a.config.Context.Timeout, a.logger, usersRepo)
-	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict)
+	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo, accountsDomainService, balanceLogRepo, transactionsRepo, categoriesDict)
 	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict, subcategoriesDict)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict, subcategoriesDict, usersRepo)
 	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider, usersRepo, accountsRepo, categoriesDict, subcategoriesDict, currencyApiClient)

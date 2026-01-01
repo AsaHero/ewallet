@@ -226,6 +226,25 @@ func (s *AccountsService) RevertTransaction(
 }
 
 // Repository
+type BalanceTimeseriesFilter struct {
+	UserID     uuid.UUID
+	From       time.Time
+	To         time.Time
+	AccountIDs []uuid.UUID // if empty, use all user's accounts
+	GroupBy    string      // "day", "week", or "month"
+	Timezone   string      // user's timezone for bucket boundaries
+}
+
+type BalanceTimeseriesPoint struct {
+	Timestamp    string // bucket key (e.g., "2026-01-01" or "2026-01")
+	BalanceOpen  int64  // opening balance for the bucket
+	BalanceClose int64  // closing balance for the bucket
+	MinBalance   int64  // min balance observed inside bucket
+	MaxBalance   int64  // max balance observed inside bucket
+	Delta        int64  // balance_close - balance_open
+	TxCount      int    // number of transactions in that bucket
+}
+
 type AccountRepository interface {
 	Save(ctx context.Context, account *Account) error
 	GetByID(ctx context.Context, id uuid.UUID) (*Account, error)
