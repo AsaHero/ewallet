@@ -238,7 +238,7 @@ type CategoryStatsItem struct {
 }
 
 type SubcategoryStatsItem struct {
-	SubcategoryID int
+	SubcategoryID *int
 	CategoryID    int
 	Total         int64
 	Count         int

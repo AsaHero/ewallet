@@ -255,6 +255,7 @@ func (h *Handlers) GetBalanceTimeseries(c *gin.Context) {
 		return
 	}
 
+	var response *accountsquery.BalanceTimeseriesView
 	response, err := h.AccountsUsecase.Query.GetBalanceTimeseries(ctx, userID, &query)
 	if err != nil {
 		apierr.Handle(c, err)

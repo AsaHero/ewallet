@@ -56,7 +56,7 @@ type SubcategoryStatsView struct {
 }
 
 type SubcategoryStatsItem struct {
-	SubcategoryID int     `json:"subcategory_id"`
+	SubcategoryID *int    `json:"subcategory_id"`
 	CategoryID    int     `json:"category_id"`
 	Name          string  `json:"name"`
 	Emoji         string  `json:"emoji"`
@@ -177,10 +177,21 @@ func (u *GetStatsBySubcategoryUsecase) GetStatsBySubcategory(
 	var totals SubcategoryStatsTotals
 
 	for _, item := range items {
-		subcategory, err := u.subcategoriesRepo.FindByID(ctx, item.SubcategoryID)
-		if err != nil {
-			u.logger.ErrorContext(ctx, "failed to get subcategory", err)
-			continue
+		var subcategoryID *int
+		var name, emoji string
+		if item.SubcategoryID != nil {
+			subcategory, err := u.subcategoriesRepo.FindByID(ctx, *item.SubcategoryID)
+			if err != nil {
+				u.logger.ErrorContext(ctx, "failed to get subcategory", err)
+				continue
+			}
+			subcategoryID = item.SubcategoryID
+			name = subcategory.GetName(user.LanguageCode)
+			emoji = subcategory.Emoji
+		} else {
+			subcategoryID = nil
+			name = ""
+			emoji = ""
 		}
 
 		// Convert to major units and use absolute value (expenses are negative)
@@ -189,10 +200,10 @@ func (u *GetStatsBySubcategoryUsecase) GetStatsBySubcategory(
 		totals.Count += item.Count
 
 		response.Items = append(response.Items, SubcategoryStatsItem{
-			SubcategoryID: item.SubcategoryID,
+			SubcategoryID: subcategoryID,
 			CategoryID:    item.CategoryID,
-			Name:          subcategory.GetName(user.LanguageCode),
-			Emoji:         subcategory.Emoji,
+			Name:          name,
+			Emoji:         emoji,
 			Total:         totalMajor,
 			Count:         item.Count,
 			Share:         0, // Will calculate after we know the total

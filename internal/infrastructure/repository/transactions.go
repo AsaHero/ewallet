@@ -616,7 +616,7 @@ func (r *transactionsRepo) GetStatsBySubcategory(ctx context.Context, userID uui
 	db := postgres.FromContext(ctx, r.db)
 
 	var results []struct {
-		SubcategoryID int   `bun:"subcategory_id"`
+		SubcategoryID *int   `bun:"subcategory_id"`
 		CategoryID    int   `bun:"category_id"`
 		Total         int64 `bun:"total"`
 		Count         int   `bun:"count"`
@@ -630,7 +630,6 @@ func (r *transactionsRepo) GetStatsBySubcategory(ctx context.Context, userID uui
 		Where("user_id = ?", userID.String()).
 		Where("created_at >= ?", from).
 		Where("created_at < ?", to).
-		Where("subcategory_id IS NOT NULL").
 		Group("subcategory_id", "category_id")
 
 	if len(accountIDs) > 0 {
