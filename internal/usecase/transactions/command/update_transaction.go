@@ -18,9 +18,6 @@ type UpdateTransactionUsecase struct {
 	contextTimeout    time.Duration
 	logger            *logger.Logger
 	txManager         postgres.TxManager
-	usersRepo         entities.UserRepository
-	accountsRepo      entities.AccountRepository
-	accountsService   *entities.AccountsService
 	transactionsRepo  entities.TransactionRepository
 	categoryRepo      entities.CategoryRepository
 	subcategoriesRepo entities.SubcategoryRepository
@@ -30,18 +27,12 @@ func NewUpdateTransactionUsecase(
 	timeout time.Duration,
 	logger *logger.Logger,
 	txManager postgres.TxManager,
-	usersRepo entities.UserRepository,
-	accountsRepo entities.AccountRepository,
-	accountsService *entities.AccountsService,
 	transactionsRepo entities.TransactionRepository,
 	categoriesRepo entities.CategoryRepository,
 	subcategoriesRepo entities.SubcategoryRepository,
 ) *UpdateTransactionUsecase {
 	return &UpdateTransactionUsecase{
 		contextTimeout:    timeout,
-		usersRepo:         usersRepo,
-		accountsRepo:      accountsRepo,
-		accountsService:   accountsService,
 		transactionsRepo:  transactionsRepo,
 		categoryRepo:      categoriesRepo,
 		subcategoriesRepo: subcategoriesRepo,
@@ -51,19 +42,12 @@ func NewUpdateTransactionUsecase(
 }
 
 type UpdateTransactionCommand struct {
-	AccountID            string
-	UserID               string
-	TransactionID        string
-	CategoryID           *int
-	SubcategoryID        *int
-	Type                 string
-	Amount               float64
-	CurrencyCode         string
-	OriginalAmount       *float64
-	OriginalCurrencyCode *string
-	FxRate               *float64
-	Note                 string
-	PerformedAt          *time.Time
+	UserID        string
+	TransactionID string
+	CategoryID    *int
+	SubcategoryID *int
+	Note          string
+	PerformedAt   *time.Time
 }
 
 func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *UpdateTransactionCommand) (_ *entities.Transaction, err error) {
@@ -77,21 +61,12 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 	defer func() { end(err) }()
 
 	var input struct {
-		accountID     uuid.UUID
 		userID        uuid.UUID
 		transactionID uuid.UUID
 		category      *entities.Category
 		subcategory   *entities.Subcategory
-		trnType       entities.TrnType
 	}
 	{
-
-		input.accountID, err = uuid.Parse(cmd.AccountID)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to parse account id", err)
-			return nil, inerr.NewErrValidation("account_id", "invalid uuid type")
-		}
-
 		input.userID, err = uuid.Parse(cmd.UserID)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to parse user id", err)
@@ -103,6 +78,7 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 			c.logger.ErrorContext(ctx, "failed to parse transaction id", err)
 			return nil, inerr.NewErrValidation("transaction_id", "invalid uuid type")
 		}
+
 		if cmd.CategoryID != nil {
 			category, err := c.categoryRepo.FindByID(ctx, *cmd.CategoryID)
 			if err != nil {
@@ -122,18 +98,6 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 
 			input.subcategory = subcategory
 		}
-
-		if cmd.Type == "deposit" {
-			input.trnType = entities.Deposit
-		} else {
-			input.trnType = entities.Withdrawal
-		}
-	}
-
-	user, err := c.usersRepo.FindByID(ctx, input.userID)
-	if err != nil {
-		c.logger.ErrorContext(ctx, "failed to get user", err)
-		return nil, err
 	}
 
 	var transaction *entities.Transaction
@@ -153,30 +117,10 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 			return inerr.NewErrNotFound("transaction")
 		}
 
-		// 2. Get account and revert old transaction
-		account, err := c.accountsRepo.GetByIDForUpdate(ctx, transaction.AccountID)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to get account", err)
-			return err
-		}
-
-		err = c.accountsService.RevertTransaction(ctx, account, transaction)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to revert transaction", err)
-			return err
-		}
-
-		// 3. Update transaction fields
+		// 2. Update metadata fields only
 		err = transaction.Update(
-			input.accountID,
 			input.category,
 			input.subcategory,
-			input.trnType,
-			cmd.Amount,
-			user.CurrencyCode,
-			cmd.OriginalAmount,
-			cmd.OriginalCurrencyCode,
-			cmd.FxRate,
 			cmd.Note,
 			cmd.PerformedAt,
 		)
@@ -185,26 +129,10 @@ func (c *UpdateTransactionUsecase) UpdateTransaction(ctx context.Context, cmd *U
 			return err
 		}
 
-		// 4. If account is updated, then fetch updated account
-		if account.ID != transaction.AccountID {
-			account, err = c.accountsRepo.GetByIDForUpdate(ctx, input.accountID)
-			if err != nil {
-				c.logger.ErrorContext(ctx, "failed to get account", err)
-				return err
-			}
-		}
-
-		// 5. Save transaction
+		// 3. Save transaction
 		err = c.transactionsRepo.Save(ctx, transaction)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to save transaction", err)
-			return err
-		}
-
-		// 6. Apply new transaction to account
-		err = c.accountsService.ApplyTransaction(ctx, account, transaction)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to apply transaction", err)
 			return err
 		}
 

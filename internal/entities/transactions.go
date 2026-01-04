@@ -159,50 +159,22 @@ func (t *Transaction) Performed(performedAt time.Time) {
 	t.PerformedAt = performedAt
 }
 
+func (t *Transaction) Rejected(rejectedAt time.Time) {
+	t.Status = Rejected
+	t.RejectedAt = rejectedAt
+}
+
 func (t *Transaction) Update(
-	accountID uuid.UUID,
 	category *Category,
 	subcategory *Subcategory,
-	trnType TrnType,
-	amount float64,
-	currency Currency,
-	originalAmount *float64,
-	originalCurrency *string,
-	fxRate *float64,
 	rowText string,
 	performedAt *time.Time,
 ) error {
-	t.Type = trnType
 	t.RowText = rowText
-	t.AccountID = accountID
 
 	err := t.Categorise(category, subcategory)
 	if err != nil {
 		return err
-	}
-
-	err = t.SetAmountMajor(amount, currency)
-	if err != nil {
-		return err
-	}
-
-	if originalAmount != nil && originalCurrency != nil {
-		err = t.SetOriginalAmountMajor(*originalAmount, Currency(*originalCurrency))
-		if err != nil {
-			return err
-		}
-
-		if fxRate != nil {
-			err = t.SetFxRate(*fxRate)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		// User deleted original amount data
-		t.OriginalAmount = 0
-		t.OriginalCurrencyCode = ""
-		t.FxRate = 0
 	}
 
 	if performedAt != nil {
@@ -286,5 +258,4 @@ type TransactionRepository interface {
 	GetStatsByCategory(ctx context.Context, userID uuid.UUID, from, to time.Time, accountIDs []uuid.UUID, trnType *TrnType) ([]CategoryStatsItem, error)
 	GetStatsBySubcategory(ctx context.Context, userID uuid.UUID, from, to time.Time, accountIDs []uuid.UUID, categoryIDs []int, trnType *TrnType) ([]SubcategoryStatsItem, error)
 	GetStatsByAccount(ctx context.Context, userID uuid.UUID, from, to time.Time, trnType *TrnType) ([]AccountStatsItem, error)
-	Delete(ctx context.Context, id uuid.UUID) error
 }

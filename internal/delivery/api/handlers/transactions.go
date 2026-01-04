@@ -43,6 +43,7 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 		UserID:               userID,
 		AccountID:            req.AccountID,
 		CategoryID:           req.CategoryID,
+		SubcategoryID:        req.SubcategoryID,
 		Type:                 req.Type,
 		Amount:               req.Amount,
 		CurrencyCode:         req.CurrencyCode,
@@ -266,18 +267,12 @@ func (h *Handlers) UpdateTransaction(c *gin.Context) {
 	}
 
 	trn, err := h.TransactionsUsecase.Command.UpdateTransaction(ctx, &command.UpdateTransactionCommand{
-		UserID:               userID,
-		TransactionID:        trnID,
-		CategoryID:           req.CategoryID,
-		SubcategoryID:        req.SubcategoryID,
-		Type:                 req.Type,
-		Amount:               req.Amount,
-		CurrencyCode:         req.CurrencyCode,
-		OriginalAmount:       req.OriginalAmount,
-		OriginalCurrencyCode: req.OriginalCurrencyCode,
-		FxRate:               req.FxRate,
-		Note:                 req.Note,
-		PerformedAt:          req.PerformedAt,
+		UserID:        userID,
+		TransactionID: trnID,
+		CategoryID:    req.CategoryID,
+		SubcategoryID: req.SubcategoryID,
+		Note:          req.Note,
+		PerformedAt:   req.PerformedAt,
 	})
 	if err != nil {
 		apierr.Handle(c, err)

@@ -74,20 +74,6 @@ func (r *transactionsRepo) Save(ctx context.Context, transaction *entities.Trans
 	return err
 }
 
-func (r *transactionsRepo) Delete(ctx context.Context, id uuid.UUID) error {
-	db := postgres.FromContext(ctx, r.db)
-
-	_, err := db.NewDelete().
-		Model((*Transactions)(nil)).
-		Where("id = ?", id).
-		Exec(ctx)
-	if err != nil {
-		return postgres.Error(err, Transactions{})
-	}
-
-	return nil
-}
-
 func (r *transactionsRepo) GetByID(ctx context.Context, transactionID uuid.UUID) (*entities.Transaction, error) {
 	db := postgres.FromContext(ctx, r.db)
 
@@ -108,6 +94,7 @@ func (r *transactionsRepo) GetByFilter(ctx context.Context, filter *entities.Tra
 	var models []Transactions
 	query := db.NewSelect().Model(&models).
 		Where("user_id = ?", filter.UserID.String()).
+		Where("status = ?", entities.Completed.String()).
 		Order("created_at desc")
 
 	if len(filter.Types) > 0 {
@@ -177,6 +164,7 @@ func (r *transactionsRepo) GetByAccountID(ctx context.Context, accountID uuid.UU
 	var models []Transactions
 	err := db.NewSelect().Model(&models).
 		Where("account_id = ?", accountID.String()).
+		Where("status = ?", entities.Completed.String()).
 		Scan(ctx)
 	if err != nil {
 		return nil, postgres.Error(err, models)
@@ -198,7 +186,8 @@ func (r *transactionsRepo) GetTotalByType(ctx context.Context, userID uuid.UUID,
 		Model((*Transactions)(nil)).
 		ColumnExpr("COALESCE(SUM(amount), 0)").
 		Where("user_id = ?", userID.String()).
-		Where("type = ?", trnType.String())
+		Where("type = ?", trnType.String()).
+		Where("status = ?", entities.Completed.String())
 
 	if from != nil {
 		query = query.Where("created_at >= ?", from)
@@ -229,6 +218,7 @@ func (r *transactionsRepo) GetTotalsByCategories(ctx context.Context, userID uui
 		ColumnExpr("SUM(amount) as total").
 		Where("user_id = ?", userID.String()).
 		Where("type = ?", trnType.String()).
+		Where("status = ?", entities.Completed.String()).
 		Group("category_id").
 		Order("total desc")
 
@@ -262,7 +252,8 @@ func (r *transactionsRepo) GetTotalByTypeAndAccount(ctx context.Context, userID 
 		Model((*Transactions)(nil)).
 		ColumnExpr("COALESCE(SUM(amount), 0)").
 		Where("user_id = ?", userID.String()).
-		Where("type = ?", trnType.String())
+		Where("type = ?", trnType.String()).
+		Where("status = ?", entities.Completed.String())
 
 	if accountID != nil {
 		query = query.Where("account_id = ?", accountID.String())
@@ -297,6 +288,7 @@ func (r *transactionsRepo) GetTotalsByCategoriesAndAccount(ctx context.Context, 
 		ColumnExpr("SUM(amount) as total").
 		Where("user_id = ?", userID.String()).
 		Where("type = ?", trnType.String()).
+		Where("status = ?", entities.Completed.String()).
 		Group("category_id").
 		Order("total desc")
 
@@ -437,6 +429,7 @@ func (r *transactionsRepo) GetFilterTotals(ctx context.Context, filter *entities
 		Column("type").
 		ColumnExpr("COALESCE(SUM(amount), 0) as total").
 		Where("user_id = ?", filter.UserID.String()).
+		Where("status = ?", entities.Completed.String()).
 		Group("type")
 
 	if len(filter.Types) > 0 {
@@ -520,6 +513,7 @@ func (r *transactionsRepo) GetTimeseriesStats(ctx context.Context, filter *entit
 		ColumnExpr("COALESCE(SUM(amount), 0) as net").
 		ColumnExpr("COUNT(*) as count").
 		Where("user_id = ?", filter.UserID.String()).
+		Where("status = ?", entities.Completed.String()).
 		Where("created_at >= ?", filter.From).
 		Where("created_at < ?", filter.To).
 		Group("ts").
@@ -578,6 +572,7 @@ func (r *transactionsRepo) GetStatsByCategory(ctx context.Context, userID uuid.U
 		Where("created_at >= ?", from).
 		Where("created_at < ?", to).
 		Where("category_id IS NOT NULL").
+		Where("status = ?", entities.Completed.String()).
 		Group("category_id")
 
 	if len(accountIDs) > 0 {
@@ -616,7 +611,7 @@ func (r *transactionsRepo) GetStatsBySubcategory(ctx context.Context, userID uui
 	db := postgres.FromContext(ctx, r.db)
 
 	var results []struct {
-		SubcategoryID *int   `bun:"subcategory_id"`
+		SubcategoryID *int  `bun:"subcategory_id"`
 		CategoryID    int   `bun:"category_id"`
 		Total         int64 `bun:"total"`
 		Count         int   `bun:"count"`
@@ -630,6 +625,7 @@ func (r *transactionsRepo) GetStatsBySubcategory(ctx context.Context, userID uui
 		Where("user_id = ?", userID.String()).
 		Where("created_at >= ?", from).
 		Where("created_at < ?", to).
+		Where("status = ?", entities.Completed.String()).
 		Group("subcategory_id", "category_id")
 
 	if len(accountIDs) > 0 {
@@ -689,6 +685,7 @@ func (r *transactionsRepo) GetStatsByAccount(ctx context.Context, userID uuid.UU
 		Where("user_id = ?", userID.String()).
 		Where("created_at >= ?", from).
 		Where("created_at < ?", to).
+		Where("status = ?", entities.Completed.String()).
 		Group("account_id").
 		Order("net DESC")
 

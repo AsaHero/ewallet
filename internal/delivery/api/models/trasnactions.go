@@ -38,6 +38,7 @@ type ParseImageRequest struct {
 type CreateTransactionRequest struct {
 	AccountID            string     `json:"account_id" binding:"required"`
 	CategoryID           *int       `json:"category_id"`
+	SubcategoryID        *int       `json:"subcategory_id"`
 	Type                 string     `json:"type" binding:"required"`
 	Amount               float64    `json:"amount" binding:"required"`
 	CurrencyCode         string     `json:"currency_code"`
@@ -49,17 +50,10 @@ type CreateTransactionRequest struct {
 }
 
 type UpdateTransactionRequest struct {
-	AccountID            string     `json:"account_id" binding:"required"`
-	CategoryID           *int       `json:"category_id"`
-	SubcategoryID        *int       `json:"subcategory_id"`
-	Type                 string     `json:"type" binding:"required"`
-	Amount               float64    `json:"amount" binding:"required"`
-	CurrencyCode         string     `json:"currency_code"`
-	OriginalAmount       *float64   `json:"original_amount,omitempty"`
-	OriginalCurrencyCode *string    `json:"original_currency_code,omitempty"`
-	FxRate               *float64   `json:"fx_rate,omitempty"`
-	Note                 string     `json:"note"`
-	PerformedAt          *time.Time `json:"performed_at"`
+	CategoryID    *int       `json:"category_id"`
+	SubcategoryID *int       `json:"subcategory_id"`
+	Note          string     `json:"note"`
+	PerformedAt   *time.Time `json:"performed_at"`
 }
 
 type TransactionsResponse struct {

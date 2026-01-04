@@ -95,9 +95,10 @@ func (c *DeleteTransactionUsecase) DeleteTransaction(ctx context.Context, cmd *D
 			return err
 		}
 
-		err = c.transactionsRepo.Delete(ctx, transactionID)
+		transaction.Rejected(time.Now())
+		err = c.transactionsRepo.Save(ctx, transaction)
 		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to delete transaction", err)
+			c.logger.ErrorContext(ctx, "failed to update transaction", err)
 			return err
 		}
 
