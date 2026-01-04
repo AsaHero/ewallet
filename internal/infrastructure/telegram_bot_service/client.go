@@ -32,9 +32,10 @@ func New(cfg *config.Config) (*apiClient, error) {
 
 func (c *apiClient) SendMessage(ctx context.Context, req *ports.SendMessageRequest) error {
 	body := map[string]any{
-		"userId":    req.UserID,
-		"message":   req.Text,
-		"parseMode": req.ParseMode,
+		"userId":      req.UserID,
+		"message":     req.Text,
+		"parseMode":   req.ParseMode,
+		"replyMarkup": req.ReplyMarkup,
 	}
 
 	var response Response

@@ -13,8 +13,10 @@ func NewRouter(opts *delivery.Options) *asynq.ServeMux {
 	}
 
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.RecordReminderCalculateTaskName, handler.RecordReminderCalculate)
+	mux.HandleFunc(tasks.RecordReminderScheduleTaskName, handler.RecordReminderSchedule)
 	mux.HandleFunc(tasks.RecordReminderSendTaskName, handler.RecordReminderSend)
+	mux.HandleFunc(tasks.DebtReminderCheckTaskName, handler.DebtReminderCheck)
+	mux.HandleFunc(tasks.DebtReminderSendTaskName, handler.DebtReminderSend)
 
 	return mux
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/AsaHero/e-wallet/internal/infrastructure/telegram_bot_service"
 	"github.com/AsaHero/e-wallet/internal/usecase/accounts"
 	"github.com/AsaHero/e-wallet/internal/usecase/categories"
+	"github.com/AsaHero/e-wallet/internal/usecase/debts"
 	"github.com/AsaHero/e-wallet/internal/usecase/notifications"
 	"github.com/AsaHero/e-wallet/internal/usecase/parser"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions"
@@ -129,6 +130,7 @@ func (a *App) Run() error {
 	accountsRepo := repository.NewAccountsRepo(a.db)
 	balanceLogRepo := repository.NewAccountBalanceLogRepo(a.db)
 	transactionsRepo := repository.NewTransactionsRepo(a.db, categoriesDict, subcategoriesDict)
+	debtsRepo := repository.NewDebtsRepo(a.db)
 
 	// domain services
 	accountsDomainService := entities.NewAccountsService(accountsRepo, balanceLogRepo)
@@ -136,10 +138,11 @@ func (a *App) Run() error {
 	// init usecases
 	usersUsecase := users.NewModule(a.config.Context.Timeout, a.logger, usersRepo)
 	accountsUsecase := accounts.NewModule(a.config.Context.Timeout, a.logger, usersRepo, accountsRepo, accountsDomainService, balanceLogRepo, transactionsRepo, categoriesDict)
-	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict, subcategoriesDict)
+	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict, subcategoriesDict, debtsRepo)
+	debtsUsecase := debts.NewModule(a.config.Context.Timeout, a.logger, txManager, debtsRepo)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict, subcategoriesDict, usersRepo)
 	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider, usersRepo, accountsRepo, categoriesDict, subcategoriesDict, currencyApiClient)
-	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, a.taskQueue, telegramBotService)
+	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, debtsRepo, a.taskQueue, telegramBotService)
 
 	// init handlers
 	opts := &delivery.Options{
@@ -149,6 +152,7 @@ func (a *App) Run() error {
 		UsersUsecase:        usersUsecase,
 		AccountsUsecase:     accountsUsecase,
 		TransactionsUsecase: transactionsUsecase,
+		DebtsUsecase:        debtsUsecase,
 		CategoriesUsecase:   categoriesUsecase,
 		ParserUsecase:       parserUsecase,
 		NotificationUsecase: notificationsUsecase,

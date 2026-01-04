@@ -68,6 +68,7 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 		UsersUsecase:        opts.UsersUsecase,
 		AccountsUsecase:     opts.AccountsUsecase,
 		TransactionsUsecase: opts.TransactionsUsecase,
+		DebtsUsecase:        opts.DebtsUsecase,
 		CategoriesUsecase:   opts.CategoriesUsecase,
 		ParserUsecase:       opts.ParserUsecase,
 	}
@@ -119,6 +120,13 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 			protected.GET("/stats/by-subcategory", h.GetStatsBySubcategory)
 			protected.GET("/stats/by-account", h.GetStatsByAccount)
 			protected.GET("/stats/compare", h.GetStatsCompare)
+
+			// Debt routes
+			protected.GET("/debts", h.GetDebts)
+			protected.GET("/debts/:id", h.GetDebt)
+			protected.PUT("/debts/:id", h.UpdateDebt)
+			protected.POST("/debts/:id/pay", h.PayDebt)
+			protected.POST("/debts/:id/cancel", h.CancelDebt)
 		}
 	}
 

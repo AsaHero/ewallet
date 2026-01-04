@@ -10,19 +10,24 @@ import (
 )
 
 type Module struct {
-	*recordReminderCalculateUsecase
+	*recordReminderScheduleUsecase
 	*recordReminderSendUsecase
+	*debtReminderCheckUsecase
+	*debtReminderSendUsecase
 }
 
 func NewModule(
 	logger *logger.Logger,
 	transactionRepo entities.TransactionRepository,
 	userRepo entities.UserRepository,
+	debtsRepo entities.DebtRepository,
 	taskQueue *asynq.Client,
 	telegramBotService ports.TelegramBotService,
 ) *Module {
 	return &Module{
-		recordReminderCalculateUsecase: NewRecordReminderCalculateUsecase(5*time.Minute, logger, transactionRepo, userRepo, taskQueue),
-		recordReminderSendUsecase:      NewRecordReminderSendUsecase(30*time.Second, logger, userRepo, transactionRepo, telegramBotService),
+		recordReminderScheduleUsecase: NewRecordReminderScheduleUsecase(5*time.Minute, logger, userRepo, taskQueue),
+		recordReminderSendUsecase:     NewRecordReminderSendUsecase(30*time.Second, logger, userRepo, transactionRepo, telegramBotService),
+		debtReminderCheckUsecase:      NewDebtReminderCheckUsecase(5*time.Minute, logger, debtsRepo, taskQueue),
+		debtReminderSendUsecase:       NewDebtReminderSendUsecase(30*time.Second, logger, userRepo, debtsRepo, telegramBotService),
 	}
 }

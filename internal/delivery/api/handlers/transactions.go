@@ -20,7 +20,7 @@ import (
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body models.CreateTransactionRequest true "request"
-// @Success      201 {object} models.Transaction
+// @Success      201 {object} models.CreateTransactionResponse
 // @Failure      400 {object} apierr.Response
 // @Failure      401 {object} apierr.Response
 // @Router       /transactions [post]
@@ -38,8 +38,8 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 		apierr.BadRequest(c, "invalid request payload", err.Error())
 		return
 	}
-
-	trn, err := h.TransactionsUsecase.Command.CreateTransaction(ctx, &command.CreateTransactionCommand{
+	var response *models.CreateTransactionResponse
+	response, err := h.TransactionsUsecase.Command.CreateTransaction(ctx, &command.CreateTransactionCommand{
 		UserID:               userID,
 		AccountID:            req.AccountID,
 		CategoryID:           req.CategoryID,
@@ -58,32 +58,7 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	transaction := models.Transaction{
-		ID:                   trn.ID.String(),
-		UserID:               trn.UserID.String(),
-		AccountID:            trn.AccountID.String(),
-		Type:                 trn.Type.String(),
-		Status:               trn.Status.String(),
-		Amount:               trn.AmountMajor(),
-		CurrencyCode:         trn.CurrencyCode.String(),
-		OriginalAmount:       pointer.Float64(trn.OriginalAmountMajor()),
-		OriginalCurrencyCode: pointer.String(trn.OriginalCurrencyCode.String()),
-		FxRate:               pointer.Float64(trn.FxRate),
-		Note:                 trn.RowText,
-		PerformedAt:          pointer.TimeOrNil(trn.PerformedAt),
-		RejectedAt:           pointer.TimeOrNil(trn.RejectedAt),
-		CreatedAt:            trn.CreatedAt,
-	}
-
-	if trn.Category != nil {
-		transaction.CategoryID = pointer.IntOrNil(trn.Category.ID.Int())
-	}
-
-	if trn.Subcategory != nil {
-		transaction.SubcategoryID = pointer.IntOrNil(trn.Subcategory.ID)
-	}
-
-	c.JSON(http.StatusCreated, transaction)
+	c.JSON(http.StatusCreated, response)
 }
 
 // GetTransactions godoc

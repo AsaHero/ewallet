@@ -7,7 +7,8 @@ type TelegramBotService interface {
 }
 
 type SendMessageRequest struct {
-	UserID    int64
-	Text      string
-	ParseMode string
+	UserID      int64
+	Text        string
+	ParseMode   string
+	ReplyMarkup map[string]any
 }

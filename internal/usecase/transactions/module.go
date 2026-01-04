@@ -42,6 +42,7 @@ func NewModule(
 	transactionsRepo entities.TransactionRepository,
 	categortiesRepo entities.CategoryRepository,
 	subcategoriesRepo entities.SubcategoryRepository,
+	debtsRepo entities.DebtRepository,
 ) *Module {
 	m := &Module{
 		Command: Commands{
@@ -55,6 +56,7 @@ func NewModule(
 				transactionsRepo,
 				categortiesRepo,
 				subcategoriesRepo,
+				debtsRepo,
 			),
 			DeleteTransactionUsecase: command.NewDeleteTransactionUsecase(
 				timeout,

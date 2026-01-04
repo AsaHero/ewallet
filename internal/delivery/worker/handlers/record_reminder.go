@@ -11,16 +11,11 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-func (h *Handler) RecordReminderCalculate(ctx context.Context, task *asynq.Task) error {
-	ctx, end := otlp.Start(ctx, otel.Tracer("worker"), "RecordReminderCalculate", attribute.String("task_type", task.Type()))
+func (h *Handler) RecordReminderSchedule(ctx context.Context, task *asynq.Task) error {
+	ctx, end := otlp.Start(ctx, otel.Tracer("worker"), "RecordReminderSchedule", attribute.String("task_type", task.Type()))
 	defer func() { end(nil) }()
 
-	var payload tasks.RecordReminderCalculatePayload
-	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
-		return err
-	}
-
-	err := h.NotificationUsecase.RecordReminderCalculate(ctx, payload.UserID)
+	err := h.NotificationUsecase.RecordReminderSchedule(ctx)
 	if err != nil {
 		return err
 	}

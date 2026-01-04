@@ -6,24 +6,11 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-const RecordReminderCalculateTaskName string = "record_reminder:calculate"
+const RecordReminderScheduleTaskName string = "record_reminder:schedule"
 const RecordReminderSendTaskName string = "record_reminder:send"
 
-type RecordReminderCalculatePayload struct {
-	UserID string `json:"user_id"`
-}
-
-func NewRecordReminderCalculateTask(userID string) (*asynq.Task, error) {
-	payload := RecordReminderCalculatePayload{
-		UserID: userID,
-	}
-
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	return asynq.NewTask(RecordReminderCalculateTaskName, data, asynq.Queue("medium")), nil
+func NewRecordReminderScheduleTask() (*asynq.Task, error) {
+	return asynq.NewTask(RecordReminderScheduleTaskName, nil, asynq.Queue("high")), nil
 }
 
 type RecordReminderSendPayload struct {

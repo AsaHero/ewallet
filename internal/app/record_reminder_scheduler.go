@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/AsaHero/e-wallet/internal/infrastructure/repository"
-	"github.com/AsaHero/e-wallet/internal/usecase/jobs"
-	"github.com/AsaHero/e-wallet/pkg/app"
+	"github.com/AsaHero/e-wallet/internal/tasks"
 	"github.com/AsaHero/e-wallet/pkg/config"
 	"github.com/AsaHero/e-wallet/pkg/database/postgres"
 	"github.com/AsaHero/e-wallet/pkg/logger"
@@ -20,14 +18,14 @@ type RecordReminderCalculateScheduler struct {
 	config       *config.Config
 	logger       *logger.Logger
 	db           *bun.DB
-	taskQueue    *asynq.Client
+	scheduler    *asynq.Scheduler
 	shutdownOTLP func(ctx context.Context) error
 }
 
 func NewRecordReminderCalculateScheduler(cfg *config.Config) (*RecordReminderCalculateScheduler, error) {
 	shutdownOTLP := otlp.InitTracer(
 		context.Background(),
-		otlp.WithServiceName("record-reminder-calculate-job"),
+		otlp.WithServiceName("record-reminder-calculate-scheduler"),
 		otlp.WithEnvironment(cfg.Environment),
 		otlp.WithExporterType(otlp.ExporterNameToExporterType[cfg.OTEL.Exporter.Type]),
 		otlp.WithEndpoint(cfg.OTEL.Exporter.OTLP.Endpoint),
@@ -36,11 +34,11 @@ func NewRecordReminderCalculateScheduler(cfg *config.Config) (*RecordReminderCal
 		otlp.WithSamplerArg(cfg.OTEL.Traces.SamplerArg),
 	)
 
-	logger, err := logger.NewLogger("record-reminder-calculate-job.log", cfg.LogLevel)
+	logger, err := logger.NewLogger("record-reminder-calculate-scheduler.log", cfg.LogLevel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)
 	}
-	// db config
+
 	db, err := postgres.NewBunDB(
 		postgres.WithHost(cfg.DB.Host),
 		postgres.WithPort(cfg.DB.Port),
@@ -48,45 +46,59 @@ func NewRecordReminderCalculateScheduler(cfg *config.Config) (*RecordReminderCal
 		postgres.WithPassword(cfg.DB.Password),
 		postgres.WithDB(cfg.DB.Name),
 		postgres.WithSSLMode(cfg.DB.Sslmode),
-		postgres.WithDebug(cfg.LogLevel == app.Debug),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing database: %v", err)
 	}
 
-	taskQueue := asynq.NewClient(asynq.RedisClientOpt{
-		Addr:     cfg.Redis.Host + ":" + cfg.Redis.Port,
-		Password: cfg.Redis.Password,
-	})
+	scheduler := asynq.NewScheduler(
+		asynq.RedisClientOpt{
+			Addr:     cfg.Redis.Host + ":" + cfg.Redis.Port,
+			Password: cfg.Redis.Password,
+		},
+		&asynq.SchedulerOpts{
+			Location: nil,
+		},
+	)
 
 	return &RecordReminderCalculateScheduler{
 		config:       cfg,
 		logger:       logger,
 		db:           db,
-		taskQueue:    taskQueue,
+		scheduler:    scheduler,
 		shutdownOTLP: shutdownOTLP,
 	}, nil
 }
 
-func (a *RecordReminderCalculateScheduler) Run() error {
-	// init repository
-	usersRepo := repository.NewUsersRepo(a.db)
+func (a *RecordReminderCalculateScheduler) Run() (err error) {
+	ctx := context.Background()
 
-	// init usecases
-	jobsUsecase := jobs.NewModule(a.config.Context.Timeout, a.logger, usersRepo, a.taskQueue)
+	ctx, end := otlp.Start(ctx, otel.Tracer("record-reminder-calculate-scheduler"), "Run")
+	defer func() { end(err) }()
 
-	ctx, end := otlp.Start(context.Background(), otel.Tracer("RecordReminderCalculate"), "Run")
-	defer func() { end(nil) }()
-
-	err := jobsUsecase.RecordReminderCalculateScheduler(ctx)
+	task, err := tasks.NewRecordReminderScheduleTask()
 	if err != nil {
+		a.logger.ErrorContext(ctx, "failed to create record reminder schedule task", err)
 		return err
 	}
 
-	return nil
+	_, err = a.scheduler.Register("0 0 * * 1-5", task, asynq.Queue("medium"))
+	if err != nil {
+		a.logger.ErrorContext(ctx, "failed to register record reminder schedule task", err)
+		return err
+	}
+
+	a.logger.InfoContext(ctx, "record reminder schedule task registered")
+	a.logger.InfoContext(ctx, "Schdules record remiders at 00:00 every day from Monday to Friday")
+
+	return a.scheduler.Run()
 }
 
 func (a *RecordReminderCalculateScheduler) Stop() error {
+	if a.scheduler != nil {
+		a.scheduler.Shutdown()
+	}
+
 	if a.db != nil {
 		_ = a.db.Close()
 	}
@@ -97,10 +109,6 @@ func (a *RecordReminderCalculateScheduler) Stop() error {
 
 	if a.logger != nil {
 		a.logger.Close()
-	}
-
-	if a.taskQueue != nil {
-		_ = a.taskQueue.Close()
 	}
 
 	return nil

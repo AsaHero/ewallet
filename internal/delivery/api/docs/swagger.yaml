@@ -111,12 +111,87 @@ definitions:
         type: string
       performed_at:
         type: string
+      subcategory_id:
+        type: integer
       type:
         type: string
     required:
     - account_id
     - amount
     - type
+    type: object
+  models.CreateTransactionResponse:
+    properties:
+      account_id:
+        type: string
+      amount:
+        type: number
+      category_id:
+        type: integer
+      created_at:
+        type: string
+      currency_code:
+        type: string
+      debt:
+        $ref: '#/definitions/models.Debt'
+      fx_rate:
+        type: number
+      id:
+        type: string
+      note:
+        type: string
+      original_amount:
+        type: number
+      original_currency_code:
+        type: string
+      performed_at:
+        type: string
+      rejected_at:
+        type: string
+      status:
+        type: string
+      subcategory_id:
+        type: integer
+      type:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.Debt:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      currency_code:
+        type: string
+      id:
+        type: string
+      paid_at:
+        type: string
+      remind_at:
+        type: string
+      status:
+        description: open, paid, cancelled
+        type: string
+      transaction_id:
+        type: string
+      type:
+        description: borrow, lend
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.DebtsResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.Debt'
+        type: array
+      pagination:
+        $ref: '#/definitions/models.PaginationResponse'
     type: object
   models.PaginationResponse:
     properties:
@@ -147,6 +222,11 @@ definitions:
         type: string
     required:
     - content
+    type: object
+  models.PayDebtRequest:
+    properties:
+      paid_at:
+        type: string
     type: object
   models.Subcategory:
     properties:
@@ -222,34 +302,25 @@ definitions:
       name:
         type: string
     type: object
-  models.UpdateTransactionRequest:
+  models.UpdateDebtRequest:
     properties:
-      account_id:
-        type: string
       amount:
         type: number
-      category_id:
-        type: integer
       currency_code:
         type: string
-      fx_rate:
-        type: number
-      note:
+      remind_at:
         type: string
-      original_amount:
-        type: number
-      original_currency_code:
+    type: object
+  models.UpdateTransactionRequest:
+    properties:
+      category_id:
+        type: integer
+      note:
         type: string
       performed_at:
         type: string
       subcategory_id:
         type: integer
-      type:
-        type: string
-    required:
-    - account_id
-    - amount
-    - type
     type: object
   models.UpdateUserRequest:
     properties:
@@ -897,6 +968,181 @@ paths:
       summary: Delete a category
       tags:
       - Categories
+  /debts:
+    get:
+      parameters:
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      - description: offset
+        in: query
+        name: offset
+        type: integer
+      - collectionFormat: csv
+        description: transaction ids
+        in: query
+        items:
+          type: string
+        name: transaction_ids
+        type: array
+      - collectionFormat: csv
+        description: debt types (borrow, lend)
+        in: query
+        items:
+          type: string
+        name: types
+        type: array
+      - collectionFormat: csv
+        description: debt statuses (open, paid, cancelled)
+        in: query
+        items:
+          type: string
+        name: statuses
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.DebtsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Lists debts with pagination
+      tags:
+      - Debts
+  /debts/{id}:
+    get:
+      parameters:
+      - description: debt id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Debt'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Returns debt by ID
+      tags:
+      - Debts
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: debt id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateDebtRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Debt'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Updates a debt
+      tags:
+      - Debts
+  /debts/{id}/cancel:
+    post:
+      parameters:
+      - description: debt id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Debt'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancels a debt
+      tags:
+      - Debts
+  /debts/{id}/pay:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: debt id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.PayDebtRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Debt'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Marks a debt as paid
+      tags:
+      - Debts
   /parse/image:
     post:
       consumes:
@@ -1460,7 +1706,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.Transaction'
+            $ref: '#/definitions/models.CreateTransactionResponse'
         "400":
           description: Bad Request
           schema:
