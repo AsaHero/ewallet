@@ -186,6 +186,10 @@ func (s *AccountsService) RevertTransaction(
 		return errors.New("account and transaction must not be nil")
 	}
 
+	if transaction.IsReverted() {
+		return nil
+	}
+
 	// Capture balance before reverting transaction
 	balanceBefore := account.Balance
 

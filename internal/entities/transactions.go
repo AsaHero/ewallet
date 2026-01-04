@@ -164,6 +164,10 @@ func (t *Transaction) Rejected(rejectedAt time.Time) {
 	t.RejectedAt = rejectedAt
 }
 
+func (t *Transaction) IsReverted() bool {
+	return t.Status == Rejected
+}
+
 func (t *Transaction) Update(
 	category *Category,
 	subcategory *Subcategory,
