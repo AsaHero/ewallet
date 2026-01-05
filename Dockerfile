@@ -13,7 +13,8 @@ RUN make build-linux
 # Stage 2: Final Image
 FROM alpine:latest
 
-RUN apk add --no-cache ffmpeg ca-certificates && update-ca-certificates
+# Install ffmpeg, ca-certificates, timezone data
+RUN apk add --no-cache ffmpeg tzdata ca-certificates && update-ca-certificates
 
 COPY --from=builder /app/bin/ewallet ./ewallet
 RUN chmod +x ./ewallet

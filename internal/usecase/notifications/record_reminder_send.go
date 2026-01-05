@@ -64,6 +64,7 @@ func (r *recordReminderSendUsecase) RecordReminderSend(ctx context.Context, user
 
 	transactions, err := r.transactionsRepo.GetAllBetween(ctx, input.userID, startOfHour, endOfHour)
 	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to get transactions", err)
 		return err
 	}
 
@@ -74,6 +75,7 @@ func (r *recordReminderSendUsecase) RecordReminderSend(ctx context.Context, user
 
 	user, err := r.userRepo.FindByID(ctx, input.userID)
 	if err != nil {
+		r.logger.ErrorContext(ctx, "failed to get user", err)
 		return err
 	}
 
@@ -82,6 +84,7 @@ func (r *recordReminderSendUsecase) RecordReminderSend(ctx context.Context, user
 		Text:      text,
 		ParseMode: "HTML",
 	}); err != nil {
+		r.logger.ErrorContext(ctx, "failed to send message", err)
 		return err
 	}
 

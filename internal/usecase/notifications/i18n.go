@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AsaHero/e-wallet/internal/entities"
+	"github.com/AsaHero/e-wallet/internal/usecase/ports"
 )
 
 // resolveLang returns user's language (EN fallback).
@@ -73,12 +74,12 @@ func debtActionLabels(lang entities.Language) DebtActionLabels {
 
 // Telegram Bot API inline keyboard in raw JSON-like form.
 // Most bot clients can send this as ReplyMarkup (serialized).
-func buildDebtInlineKeyboard(lang entities.Language, debtID string) map[string]any {
+func buildDebtInlineKeyboard(lang entities.Language, debtID string) ports.InlineKeyboardMarkup {
 	labels := debtActionLabels(lang)
 
 	// callback_data format: debt:<action>:<debtID>
-	return map[string]any{
-		`inline_keyboard`: [][]map[string]any{
+	return ports.InlineKeyboardMarkup{
+		InlineKeyboard: [][]map[string]any{
 			{
 				{`text`: labels.Paid, `callback_data`: fmt.Sprintf(`debt:paid:%s`, debtID)},
 				{`text`: labels.RemindLater, `callback_data`: fmt.Sprintf(`debt:remind_later:%s`, debtID)},
