@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS debts(
     updated_at timestamp with time zone,
     PRIMARY KEY (id)
     CONSTRAINT debts_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT debts_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT debts_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS debts_user_id_type_status_idx ON debts(user_id, type, status);
