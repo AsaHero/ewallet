@@ -224,7 +224,7 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 		Confidence:    (detailsResult.Confidence + categoryResult.Confidence) / 2,
 	}
 
-	if detailsResult.Currency != user.CurrencyCode.String() {
+	if detailsResult.Currency != "" && user.CurrencyCode.String() != "" && detailsResult.Currency != user.CurrencyCode.String() {
 		fxRate, err := p.fxRatesProvider.GetRate(ctx, detailsResult.Currency, user.CurrencyCode.String())
 		if err != nil {
 			p.logger.ErrorContext(ctx, "failed to get fx rate", err)
