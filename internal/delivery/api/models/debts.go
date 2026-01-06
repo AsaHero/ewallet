@@ -9,9 +9,11 @@ type Debt struct {
 	TransactionID string     `json:"transaction_id"`
 	Type          string     `json:"type"`   // borrow, lend
 	Status        string     `json:"status"` // open, paid, cancelled
+	Name          string     `json:"name"`
 	Amount        float64    `json:"amount"`
 	CurrencyCode  string     `json:"currency_code"`
-	RemindAt      *time.Time `json:"remind_at,omitempty"`
+	Note          string     `json:"note"`
+	DueAt         *time.Time `json:"due_at,omitempty"`
 	PaidAt        *time.Time `json:"paid_at,omitempty"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
@@ -19,13 +21,17 @@ type Debt struct {
 
 type CreateDebtRequest struct {
 	TransactionID string     `json:"transaction_id"`
-	RemindAt      *time.Time `json:"remind_at"`
+	Type          string     `json:"type"`
+	Name          *string    `json:"name"`
+	DueAt         *time.Time `json:"due_at"`
+	Note          *string    `json:"note"`
 }
 
 type UpdateDebtRequest struct {
-	Amount       *float64   `json:"amount"`
-	CurrencyCode *string    `json:"currency_code"`
-	RemindAt     *time.Time `json:"remind_at"`
+	Amount *float64   `json:"amount"`
+	Name   *string    `json:"name"`
+	DueAt  *time.Time `json:"due_at"`
+	Note   *string    `json:"note"`
 }
 
 type PayDebtRequest struct {

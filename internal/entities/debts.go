@@ -38,9 +38,11 @@ type Debt struct {
 	TransactionID uuid.UUID
 	Type          DebtType
 	Status        DebtStatus
+	Name          string
 	Amount        int64
 	CurrencyCode  Currency
-	RemindAt      time.Time
+	Note          string
+	DueAt         time.Time
 	PaidAt        time.Time
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
@@ -88,6 +90,16 @@ func (d *Debt) SetAmountMinor(minor int64, currency Currency) error {
 	return nil
 }
 
+func (d *Debt) SetName(name string) {
+	d.Name = name
+	d.UpdatedAt = time.Now()
+}
+
+func (d *Debt) SetNote(note string) {
+	d.Note = note
+	d.UpdatedAt = time.Now()
+}
+
 func (d *Debt) AmountMinor() int64 {
 	return d.Amount
 }
@@ -96,8 +108,8 @@ func (d *Debt) AmountMajor() float64 {
 	return MajorFromMinor(d.Amount, d.CurrencyCode.Scale())
 }
 
-func (d *Debt) SetReminder(remindAt time.Time) {
-	d.RemindAt = remindAt
+func (d *Debt) SetDueAt(dueAt time.Time) {
+	d.DueAt = dueAt
 	d.UpdatedAt = time.Now()
 }
 
@@ -114,18 +126,23 @@ func (d *Debt) Cancel() {
 
 func (d *Debt) Update(
 	amount *int64,
-	currency *Currency,
-	remindAt *time.Time,
+	name *string,
+	dueAt *time.Time,
+	note *string,
 ) error {
-	if amount != nil && currency != nil {
+	if amount != nil {
 		d.Amount = *amount
-		d.CurrencyCode = *currency
+	}
+	if name != nil {
+		d.Name = *name
+	}
+	if note != nil {
+		d.Note = *note
 	}
 
-	if remindAt != nil {
-		d.RemindAt = *remindAt
+	if dueAt != nil {
+		d.DueAt = *dueAt
 	}
-
 	d.UpdatedAt = time.Now()
 	return nil
 }

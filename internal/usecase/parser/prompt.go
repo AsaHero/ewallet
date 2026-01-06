@@ -144,10 +144,10 @@ Example 1 — Account explicitly mentioned
 USER CONTEXT:
 - Language: UZ
 - Currency: UZS
+- Current datetime: 2025-12-14T19:26:00Z
 - Accounts:
   - 15372648-53b3-4415-897e-fb0998798807 → Assosy
   - e215c04d-36d7-481d-9783-2d023eb9f52f → Main Card
-- Current datetime: 2025-12-14T19:26:00Z
 
 TRANSACTION TEXT:
 Assosy kartadan 755k бензин
@@ -169,9 +169,9 @@ Example 2 — Currency explicitly different from user currency
 USER CONTEXT:
 - Language: EN
 - Currency: UZS
+- Current datetime: 2025-12-10T10:00:00Z
 - Accounts:
   - e215c04d-36d7-481d-9783-2d023eb9f52f → Main Card
-- Current datetime: 2025-12-10T10:00:00Z
 
 TRANSACTION TEXT:
 Paid hosting 50.67 USD
@@ -192,11 +192,10 @@ Example 3 — No account, no currency override
 
 USER CONTEXT:
 - Language: UZ
-- Job title: Truck Driver
 - Currency: UZS
+- Current datetime: 2025-12-14T19:26:00Z
 - Accounts:
   - 15372648-53b3-4415-897e-fb0998798807 → Assosy
-- Current datetime: 2025-12-14T19:26:00Z
 
 TRANSACTION TEXT:
 12335150.50 сум получил зарплату
@@ -217,11 +216,10 @@ Example 4 — Receipt with store name, no account mentioned
 
 USER CONTEXT:
 - Language: RU
-- Job title: Office Worker
 - Currency: UZS
+- Current datetime: 2025-12-12T14:10:00Z
 - Accounts:
   - e215c04d-36d7-481d-9783-2d023eb9f52f → Main Card
-- Current datetime: 2025-12-12T14:10:00Z
 
 RECEIPT TEXT:
 MAGNUM
@@ -300,4 +298,59 @@ Now clean and rewrite this receipt:
 
 %s
 `, ocr_text)
+}
+
+const DebtCounterpartySystemMessage = `
+You are a deterministic debt counterparty extractor for a personal finance app.
+
+TASK
+Given a short text about borrowing/lending, extract:
+1) the counterparty (person/organization name)
+2) due date (if clearly mentioned)
+
+INPUT:
+
+USER CONTEXT:
+- Language: <LANG>
+- Timezone: <TIMEZONE>
+- Current Time (UTC): <CURRENT_TIME>
+
+TEXT:
+<TEXT>
+
+OUTPUT
+Return ONLY valid JSON. No markdown. No extra keys.
+
+JSON SCHEMA
+{
+  "counterparty_name": string|null,
+  "due_date": string|null,
+  "confidence": number
+}
+
+RULES
+1) counterparty_name:
+- Extract the person/organization the debt is with.
+- Use the same language/script as in the input.
+- Keep it short: 1–4 words. Examples: "Mom", "Ali", "Мама", "Aziza", "Workmate".
+- If not present -> null.
+
+2) due_date:
+- ISO-8601 date/time in UTC if clearly mentioned ("tomorrow", "до 15 января", "15/01").
+- If not mentioned -> null.
+
+3) confidence:
+- 0..1. Low if name is inferred.
+`
+
+func NewDebtCounterpartyPrompt(lang, text, timezone string, nowUTC time.Time) string {
+	return fmt.Sprintf(`
+USER CONTEXT:
+- Language: %s
+- Timezone: %s
+- Current Time (UTC): %s
+
+TEXT:
+%s
+`, lang, timezone, nowUTC.Format(time.RFC3339), text)
 }

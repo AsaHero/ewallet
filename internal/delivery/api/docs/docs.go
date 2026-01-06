@@ -1914,10 +1914,19 @@ const docTemplate = `{
         "models.CreateDebtRequest": {
             "type": "object",
             "properties": {
-                "remind_at": {
+                "due_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "note": {
                     "type": "string"
                 },
                 "transaction_id": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -1991,13 +2000,19 @@ const docTemplate = `{
                 "currency_code": {
                     "type": "string"
                 },
+                "due_at": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
-                "paid_at": {
+                "name": {
                     "type": "string"
                 },
-                "remind_at": {
+                "note": {
+                    "type": "string"
+                },
+                "paid_at": {
                     "type": "string"
                 },
                 "status": {
@@ -2207,10 +2222,13 @@ const docTemplate = `{
                 "amount": {
                     "type": "number"
                 },
-                "currency_code": {
+                "due_at": {
                     "type": "string"
                 },
-                "remind_at": {
+                "name": {
+                    "type": "string"
+                },
+                "note": {
                     "type": "string"
                 }
             }

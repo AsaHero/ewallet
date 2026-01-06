@@ -80,7 +80,7 @@ func (r *debtReminderSendUsecase) DebtReminderSend(ctx context.Context, debtID s
 		DebtType: debt.Type,
 		Amount:   debt.AmountMajor(),
 		Currency: debt.CurrencyCode.String(),
-		RemindAt: debt.RemindAt,
+		RemindAt: debt.DueAt,
 		Loc:      loc,
 	})
 

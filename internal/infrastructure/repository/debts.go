@@ -19,9 +19,11 @@ type Debts struct {
 	TransactionID string     `bun:"transaction_id,type:uuid"`
 	Type          string     `bun:"type"`
 	Status        string     `bun:"status"`
+	Name          string     `bun:"name"`
 	Amount        int64      `bun:"amount"`
 	CurrencyCode  string     `bun:"currency_code"`
-	RemindAt      *time.Time `bun:"remind_at,nullzero"`
+	Note          string     `bun:"note"`
+	DueAt         *time.Time `bun:"due_at,nullzero"`
 	PaidAt        *time.Time `bun:"paid_at,nullzero"`
 	CreatedAt     time.Time  `bun:"created_at,default:current_timestamp"`
 	UpdatedAt     *time.Time `bun:"updated_at,nullzero"`
@@ -49,7 +51,9 @@ func (r *debtsRepo) Save(ctx context.Context, debt *entities.Debt) error {
 		Set("status = EXCLUDED.status").
 		Set("amount = EXCLUDED.amount").
 		Set("currency_code = EXCLUDED.currency_code").
-		Set("remind_at = EXCLUDED.remind_at").
+		Set("name = EXCLUDED.name").
+		Set("note = EXCLUDED.note").
+		Set("due_at = EXCLUDED.due_at").
 		Set("paid_at = EXCLUDED.paid_at").
 		Set("updated_at = EXCLUDED.updated_at").
 		Exec(ctx)
@@ -158,10 +162,10 @@ func (r *debtsRepo) GetDueReminders(ctx context.Context, before time.Time) ([]*e
 
 	var models []Debts
 	err := db.NewSelect().Model(&models).
-		Where("remind_at IS NOT NULL").
-		Where("remind_at <= ?", before).
+		Where("due_at IS NOT NULL").
+		Where("due_at <= ?", before).
 		Where("status = ?", entities.Open.String()).
-		Order("remind_at ASC").
+		Order("due_at ASC").
 		Scan(ctx)
 	if err != nil {
 		return nil, postgres.Error(err, models)
@@ -200,9 +204,11 @@ func (r *debtsRepo) ToModel(e *entities.Debt) *Debts {
 		TransactionID: e.TransactionID.String(),
 		Type:          e.Type.String(),
 		Status:        e.Status.String(),
+		Name:          e.Name,
 		Amount:        e.Amount,
 		CurrencyCode:  e.CurrencyCode.String(),
-		RemindAt:      pointer.TimeOrNil(e.RemindAt),
+		Note:          e.Note,
+		DueAt:         pointer.TimeOrNil(e.DueAt),
 		PaidAt:        pointer.TimeOrNil(e.PaidAt),
 		CreatedAt:     e.CreatedAt,
 		UpdatedAt:     pointer.TimeOrNil(e.UpdatedAt),
@@ -226,9 +232,11 @@ func (r *debtsRepo) ToEntity(m *Debts) *entities.Debt {
 		TransactionID: transactionID,
 		Type:          entities.DebtType(m.Type),
 		Status:        entities.DebtStatus(m.Status),
+		Name:          m.Name,
 		Amount:        m.Amount,
 		CurrencyCode:  entities.Currency(m.CurrencyCode),
-		RemindAt:      pointer.TimeValue(m.RemindAt),
+		Note:          m.Note,
+		DueAt:         pointer.TimeValue(m.DueAt),
 		PaidAt:        pointer.TimeValue(m.PaidAt),
 		CreatedAt:     m.CreatedAt,
 		UpdatedAt:     pointer.TimeValue(m.UpdatedAt),

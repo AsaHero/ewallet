@@ -9,6 +9,7 @@ import (
 	"github.com/AsaHero/e-wallet/pkg/logger"
 	"github.com/AsaHero/e-wallet/pkg/otlp"
 	"github.com/google/uuid"
+	"github.com/shogo82148/pointer"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -36,7 +37,9 @@ func NewCreateDebtUsecase(
 
 type CreateDebtCommand struct {
 	TransactionID string
-	RemindAt      *time.Time
+	Name          *string
+	Note          *string
+	DueAt         *time.Time
 }
 
 func (c *CreateDebtUsecase) CreateDebt(ctx context.Context, cmd *CreateDebtCommand) (_ *entities.Debt, err error) {
@@ -45,7 +48,9 @@ func (c *CreateDebtUsecase) CreateDebt(ctx context.Context, cmd *CreateDebtComma
 
 	ctx, end := otlp.Start(ctx, otel.Tracer("debts"), "CreateDebt",
 		attribute.String("transaction_id", cmd.TransactionID),
-		attribute.String("remind_at", cmd.RemindAt.String()),
+		attribute.String("due_at", pointer.TimeValue(cmd.DueAt).String()),
+		attribute.String("name", pointer.StringValue(cmd.Name)),
+		attribute.String("note", pointer.StringValue(cmd.Note)),
 	)
 	defer func() { end(err) }()
 
@@ -92,8 +97,16 @@ func (c *CreateDebtUsecase) CreateDebt(ctx context.Context, cmd *CreateDebtComma
 		return nil, err
 	}
 
-	if cmd.RemindAt != nil {
-		debt.SetReminder(*cmd.RemindAt)
+	if cmd.DueAt != nil {
+		debt.SetDueAt(*cmd.DueAt)
+	}
+
+	if cmd.Name != nil {
+		debt.SetName(*cmd.Name)
+	}
+
+	if cmd.Note != nil {
+		debt.SetNote(*cmd.Note)
 	}
 
 	if err := c.debtsRepo.Save(ctx, debt); err != nil {

@@ -36,11 +36,12 @@ func NewUpdateDebtUsecase(
 }
 
 type UpdateDebtCommand struct {
-	UserID       string
-	DebtID       string
-	Amount       *float64
-	CurrencyCode *string
-	RemindAt     *time.Time
+	UserID string
+	DebtID string
+	Amount *float64
+	Name   *string
+	DueAt  *time.Time
+	Note   *string
 }
 
 func (c *UpdateDebtUsecase) UpdateDebt(ctx context.Context, cmd *UpdateDebtCommand) (_ *entities.Debt, err error) {
@@ -90,16 +91,13 @@ func (c *UpdateDebtUsecase) UpdateDebt(ctx context.Context, cmd *UpdateDebtComma
 
 		// 2. Prepare update values
 		var amount *int64
-		var currency *entities.Currency
-		if cmd.Amount != nil && cmd.CurrencyCode != nil {
-			curr := entities.Currency(*cmd.CurrencyCode)
-			minorAmount := entities.MinorFromMajor(*cmd.Amount, curr.Scale())
+		if cmd.Amount != nil {
+			minorAmount := entities.MinorFromMajor(*cmd.Amount, debt.CurrencyCode.Scale())
 			amount = &minorAmount
-			currency = &curr
 		}
 
 		// 3. Update debt
-		err = debt.Update(amount, currency, cmd.RemindAt)
+		err = debt.Update(amount, cmd.Name, cmd.DueAt, cmd.Note)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to update debt", err)
 			return err
