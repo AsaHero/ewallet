@@ -70,7 +70,7 @@ type CreateTransactionCommand struct {
 	PerformedAt          *time.Time
 }
 
-func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *CreateTransactionCommand) (_ *models.CreateTransactionResponse, err error) {
+func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *CreateTransactionCommand) (_ *models.Transaction, err error) {
 	ctx, cancel := context.WithTimeout(ctx, c.contextTimeout)
 	defer cancel()
 
@@ -135,7 +135,6 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 	}
 
 	var transaction *entities.Transaction
-	var debt *entities.Debt
 	err = c.txManager.WithTx(ctx, func(ctx context.Context) error {
 		account, err := c.accountsRepo.GetByIDForUpdate(ctx, input.accountID)
 		if err != nil {
@@ -200,59 +199,27 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 			return err
 		}
 
-		// Create debt if category is "Loans & Debts" (ID 26)
-		if input.category != nil && input.category.ID.Int() == 26 {
-			// Determine debt type based on transaction type
-			var debtType entities.DebtType
-			if input.trnType == entities.Withdrawal {
-				debtType = entities.Borrow // User borrowed money (withdrawal = spending)
-			} else {
-				debtType = entities.Lend // User lent money (deposit = receiving)
-			}
-
-			debt, err = entities.NewDebt(user.ID, transaction.ID, debtType)
-			if err != nil {
-				c.logger.ErrorContext(ctx, "failed to create debt", err)
-				return err
-			}
-
-			// Set debt amount from transaction
-			err = debt.SetAmountMinor(transaction.Amount, transaction.CurrencyCode)
-			if err != nil {
-				c.logger.ErrorContext(ctx, "failed to set debt amount", err)
-				return err
-			}
-
-			err = c.debtsRepo.Save(ctx, debt)
-			if err != nil {
-				c.logger.ErrorContext(ctx, "failed to save debt", err)
-				return err
-			}
-		}
-
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	response := &models.CreateTransactionResponse{
-		Transaction: models.Transaction{
-			ID:                   transaction.ID.String(),
-			UserID:               transaction.UserID.String(),
-			AccountID:            transaction.AccountID.String(),
-			Type:                 transaction.Type.String(),
-			Status:               transaction.Status.String(),
-			Amount:               transaction.AmountMajor(),
-			CurrencyCode:         transaction.CurrencyCode.String(),
-			OriginalAmount:       pointer.Float64(transaction.OriginalAmountMajor()),
-			OriginalCurrencyCode: pointer.String(transaction.OriginalCurrencyCode.String()),
-			FxRate:               pointer.Float64(transaction.FxRate),
-			Note:                 transaction.RowText,
-			PerformedAt:          pointer.TimeOrNil(transaction.PerformedAt),
-			RejectedAt:           pointer.TimeOrNil(transaction.RejectedAt),
-			CreatedAt:            transaction.CreatedAt,
-		},
+	response := &models.Transaction{
+		ID:                   transaction.ID.String(),
+		UserID:               transaction.UserID.String(),
+		AccountID:            transaction.AccountID.String(),
+		Type:                 transaction.Type.String(),
+		Status:               transaction.Status.String(),
+		Amount:               transaction.AmountMajor(),
+		CurrencyCode:         transaction.CurrencyCode.String(),
+		OriginalAmount:       pointer.Float64(transaction.OriginalAmountMajor()),
+		OriginalCurrencyCode: pointer.String(transaction.OriginalCurrencyCode.String()),
+		FxRate:               pointer.Float64(transaction.FxRate),
+		Note:                 transaction.RowText,
+		PerformedAt:          pointer.TimeOrNil(transaction.PerformedAt),
+		RejectedAt:           pointer.TimeOrNil(transaction.RejectedAt),
+		CreatedAt:            transaction.CreatedAt,
 	}
 
 	if transaction.Category != nil {
@@ -261,22 +228,6 @@ func (c *CreateTransactionUsecase) CreateTransaction(ctx context.Context, cmd *C
 
 	if transaction.Subcategory != nil {
 		response.SubcategoryID = pointer.IntOrNil(transaction.Subcategory.ID)
-	}
-
-	if debt != nil {
-		response.Debt = models.Debt{
-			ID:            debt.ID.String(),
-			UserID:        debt.UserID.String(),
-			TransactionID: debt.TransactionID.String(),
-			Status:        debt.Status.String(),
-			Type:          debt.Type.String(),
-			Amount:        debt.AmountMajor(),
-			CurrencyCode:  debt.CurrencyCode.String(),
-			RemindAt:      pointer.TimeOrNil(debt.RemindAt),
-			PaidAt:        pointer.TimeOrNil(debt.PaidAt),
-			UpdatedAt:     pointer.TimeOrNil(debt.UpdatedAt),
-			CreatedAt:     debt.CreatedAt,
-		}
 	}
 
 	return response, nil

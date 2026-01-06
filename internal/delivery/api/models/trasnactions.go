@@ -22,11 +22,6 @@ type Transaction struct {
 	CreatedAt            time.Time  `json:"created_at"`
 }
 
-type CreateTransactionResponse struct {
-	Transaction
-	Debt Debt `json:"debt,omitempty"`
-}
-
 // ParseTransactionRequest represents payload that is parsed by AI
 type ParseTextRequest struct {
 	Content string `json:"content" binding:"required"`

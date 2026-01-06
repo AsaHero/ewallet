@@ -122,6 +122,7 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 			protected.GET("/stats/compare", h.GetStatsCompare)
 
 			// Debt routes
+			protected.POST("/debts", h.CreateDebt)
 			protected.GET("/debts", h.GetDebts)
 			protected.GET("/debts/:id", h.GetDebt)
 			protected.PUT("/debts/:id", h.UpdateDebt)

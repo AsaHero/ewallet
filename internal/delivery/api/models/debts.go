@@ -17,6 +17,11 @@ type Debt struct {
 	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 }
 
+type CreateDebtRequest struct {
+	TransactionID string     `json:"transaction_id"`
+	RemindAt      *time.Time `json:"remind_at"`
+}
+
 type UpdateDebtRequest struct {
 	Amount       *float64   `json:"amount"`
 	CurrencyCode *string    `json:"currency_code"`

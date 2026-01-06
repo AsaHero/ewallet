@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/AsaHero/e-wallet/internal/delivery/api/apierr"
@@ -12,6 +13,58 @@ import (
 	"github.com/go-playground/form/v4"
 	"github.com/shogo82148/pointer"
 )
+
+// CreateDebt godoc
+// @Summary      Creates a debt
+// @Tags         Debts
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body models.CreateDebtRequest true "request"
+// @Success      200 {object} models.Debt
+// @Failure      400 {object} apierr.Response
+// @Failure      401 {object} apierr.Response
+// @Router       /debts [post]
+func (h *Handlers) CreateDebt(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		apierr.Unauthorized(c, "user context is missing")
+		return
+	}
+
+	var req models.CreateDebtRequest
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		apierr.BadRequest(c, "invalid request payload", err.Error())
+		return
+	}
+
+	debt, err := h.DebtsUsecase.Command.CreateDebt(ctx, &command.CreateDebtCommand{
+		TransactionID: req.TransactionID,
+		RemindAt:      req.RemindAt,
+	})
+	if err != nil {
+		apierr.Handle(c, err)
+		return
+	}
+
+	response := models.Debt{
+		ID:            debt.ID.String(),
+		UserID:        debt.UserID.String(),
+		TransactionID: debt.TransactionID.String(),
+		Type:          debt.Type.String(),
+		Status:        debt.Status.String(),
+		Amount:        debt.AmountMajor(),
+		CurrencyCode:  debt.CurrencyCode.String(),
+		RemindAt:      pointer.TimeOrNil(debt.RemindAt),
+		PaidAt:        pointer.TimeOrNil(debt.PaidAt),
+		CreatedAt:     debt.CreatedAt,
+		UpdatedAt:     pointer.TimeOrNil(debt.UpdatedAt),
+	}
+
+	c.JSON(http.StatusOK, response)
+}
 
 // UpdateDebt godoc
 // @Summary      Updates a debt

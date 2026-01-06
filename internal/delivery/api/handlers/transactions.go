@@ -20,7 +20,7 @@ import (
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body models.CreateTransactionRequest true "request"
-// @Success      201 {object} models.CreateTransactionResponse
+// @Success      201 {object} models.Transaction
 // @Failure      400 {object} apierr.Response
 // @Failure      401 {object} apierr.Response
 // @Router       /transactions [post]
@@ -38,7 +38,7 @@ func (h *Handlers) CreateTransaction(c *gin.Context) {
 		apierr.BadRequest(c, "invalid request payload", err.Error())
 		return
 	}
-	var response *models.CreateTransactionResponse
+	var response *models.Transaction
 	response, err := h.TransactionsUsecase.Command.CreateTransaction(ctx, &command.CreateTransactionCommand{
 		UserID:               userID,
 		AccountID:            req.AccountID,

@@ -11,6 +11,7 @@ import (
 )
 
 type Commands struct {
+	*command.CreateDebtUsecase
 	*command.UpdateDebtUsecase
 	*command.PayDebtUsecase
 	*command.CancelDebtUsecase
@@ -31,9 +32,16 @@ func NewModule(
 	logger *logger.Logger,
 	txManager postgres.TxManager,
 	debtsRepo entities.DebtRepository,
+	transactionsRepo entities.TransactionRepository,
 ) *Module {
 	m := &Module{
 		Command: Commands{
+			CreateDebtUsecase: command.NewCreateDebtUsecase(
+				timeout,
+				logger,
+				debtsRepo,
+				transactionsRepo,
+			),
 			UpdateDebtUsecase: command.NewUpdateDebtUsecase(
 				timeout,
 				logger,
