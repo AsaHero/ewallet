@@ -2299,6 +2299,20 @@ const docTemplate = `{
                 }
             }
         },
+        "parser.DebtDetailsResult": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "type": "number"
+                },
+                "counterparty_name": {
+                    "type": "string"
+                },
+                "due_at": {
+                    "type": "string"
+                }
+            }
+        },
         "parser.ParseAudioView": {
             "type": "object",
             "properties": {
@@ -2316,6 +2330,9 @@ const docTemplate = `{
                 },
                 "currency": {
                     "type": "string"
+                },
+                "debt_details": {
+                    "$ref": "#/definitions/parser.DebtDetailsResult"
                 },
                 "fx_rate": {
                     "type": "number"
@@ -2358,6 +2375,9 @@ const docTemplate = `{
                 "currency": {
                     "type": "string"
                 },
+                "debt_details": {
+                    "$ref": "#/definitions/parser.DebtDetailsResult"
+                },
                 "fx_rate": {
                     "type": "number"
                 },
@@ -2398,6 +2418,9 @@ const docTemplate = `{
                 },
                 "currency": {
                     "type": "string"
+                },
+                "debt_details": {
+                    "$ref": "#/definitions/parser.DebtDetailsResult"
                 },
                 "fx_rate": {
                     "type": "number"

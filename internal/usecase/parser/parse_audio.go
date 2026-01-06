@@ -56,18 +56,19 @@ func NewParseAudioUsecase(
 }
 
 type ParseAudioView struct {
-	AccountID        *string    `json:"account_id,omitempty"`
-	Type             string     `json:"type"`
-	Amount           float64    `json:"amount"`
-	Currency         string     `json:"currency,omitempty"`
-	OriginalAmount   *float64   `json:"original_amount,omitempty"`
-	OriginalCurrency *string    `json:"original_currency,omitempty"`
-	FxRate           *float64   `json:"fx_rate,omitempty"`
-	CategoryID       *int       `json:"category_id,omitempty"`
-	SubcategoryID    *int       `json:"subcategory_id,omitempty"`
-	Note             string     `json:"note,omitempty"`
-	PerformedAt      *time.Time `json:"performed_at,omitempty"`
-	Confidence       float64    `json:"confidence"`
+	AccountID        *string            `json:"account_id,omitempty"`
+	Type             string             `json:"type"`
+	Amount           float64            `json:"amount"`
+	Currency         string             `json:"currency,omitempty"`
+	OriginalAmount   *float64           `json:"original_amount,omitempty"`
+	OriginalCurrency *string            `json:"original_currency,omitempty"`
+	FxRate           *float64           `json:"fx_rate,omitempty"`
+	CategoryID       *int               `json:"category_id,omitempty"`
+	SubcategoryID    *int               `json:"subcategory_id,omitempty"`
+	Note             string             `json:"note,omitempty"`
+	PerformedAt      *time.Time         `json:"performed_at,omitempty"`
+	Confidence       float64            `json:"confidence"`
+	DebtDetails      *DebtDetailsResult `json:"debt_details,omitempty"`
 }
 
 func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileURL string) (_ *ParseAudioView, err error) {
@@ -147,6 +148,7 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 
 	var categoryResult CategoryClassificationResult
 	var detailsResult TransactionDetailsResult
+	var debtResult *DebtDetailsResult
 	var wg sync.WaitGroup
 	var errChan = make(chan error, 2)
 
@@ -242,6 +244,19 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 		return nil, <-errChan
 	}
 
+	if categoryResult.CategoryID != nil && *categoryResult.CategoryID == entities.LoanAndDebtsCategory.Int() {
+		prompt := NewDebtCounterpartyPrompt(transcriprionText, user.LanguageCode.String(), user.Timezone, time.Now().UTC())
+		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, DebtCounterpartySystemMessage, prompt)
+		if err != nil {
+			p.logger.ErrorContext(ctx, "failed to get debt counterparty", err)
+		}
+
+		resp = utils.CleanMarkdownJSON(resp)
+		if err := json.Unmarshal([]byte(resp), &debtResult); err != nil {
+			p.logger.ErrorContext(ctx, "failed to parse debt counterparty", err)
+		}
+	}
+
 	// Merge results
 	var result = &ParseAudioView{
 		Type:          detailsResult.Type,
@@ -268,6 +283,10 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 	} else {
 		result.Amount = detailsResult.Amount
 		result.Currency = user.CurrencyCode.String()
+	}
+
+	if debtResult != nil {
+		result.DebtDetails = debtResult
 	}
 
 	return result, nil

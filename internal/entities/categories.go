@@ -11,7 +11,8 @@ import (
 type CategoryID int
 
 const (
-	OtherCategory CategoryID = 25
+	OtherCategory        CategoryID = 25
+	LoanAndDebtsCategory CategoryID = 26
 )
 
 func (c CategoryID) Int() int {

@@ -308,7 +308,7 @@ Given a short text about borrowing/lending, extract:
 1) the counterparty (person/organization name)
 2) due date (if clearly mentioned)
 
-INPUT:
+INPUT
 
 USER CONTEXT:
 - Language: <LANG>
@@ -343,7 +343,7 @@ RULES
 - 0..1. Low if name is inferred.
 `
 
-func NewDebtCounterpartyPrompt(lang, text, timezone string, nowUTC time.Time) string {
+func NewDebtCounterpartyPrompt(text, lang, timezone string, nowUTC time.Time) string {
 	return fmt.Sprintf(`
 USER CONTEXT:
 - Language: %s

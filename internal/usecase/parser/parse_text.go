@@ -53,18 +53,19 @@ func NewParseTextUsecase(
 }
 
 type ParseTextView struct {
-	AccountID        *string    `json:"account_id,omitempty"`
-	Type             string     `json:"type"`
-	Amount           float64    `json:"amount"`
-	Currency         string     `json:"currency,omitempty"`
-	OriginalAmount   *float64   `json:"original_amount,omitempty"`
-	OriginalCurrency *string    `json:"original_currency,omitempty"`
-	FxRate           *float64   `json:"fx_rate,omitempty"`
-	CategoryID       *int       `json:"category_id,omitempty"`
-	SubcategoryID    *int       `json:"subcategory_id,omitempty"`
-	Note             string     `json:"note,omitempty"`
-	PerformedAt      *time.Time `json:"performed_at,omitempty"`
-	Confidence       float64    `json:"confidence"`
+	AccountID        *string            `json:"account_id,omitempty"`
+	Type             string             `json:"type"`
+	Amount           float64            `json:"amount"`
+	Currency         string             `json:"currency,omitempty"`
+	OriginalAmount   *float64           `json:"original_amount,omitempty"`
+	OriginalCurrency *string            `json:"original_currency,omitempty"`
+	FxRate           *float64           `json:"fx_rate,omitempty"`
+	CategoryID       *int               `json:"category_id,omitempty"`
+	SubcategoryID    *int               `json:"subcategory_id,omitempty"`
+	Note             string             `json:"note,omitempty"`
+	PerformedAt      *time.Time         `json:"performed_at,omitempty"`
+	Confidence       float64            `json:"confidence"`
+	DebtDetails      *DebtDetailsResult `json:"debt_details,omitempty"`
 }
 
 type TransactionDetailsResult struct {
@@ -81,6 +82,12 @@ type CategoryClassificationResult struct {
 	CategoryID    *int    `json:"category_id"`
 	SubcategoryID *int    `json:"subcategory_id"`
 	Confidence    float64 `json:"confidence"`
+}
+
+type DebtDetailsResult struct {
+	CounterpartyName string     `json:"counterparty_name"`
+	DueAt            *time.Time `json:"due_at,omitempty"`
+	Confidence       float64    `json:"confidence"`
 }
 
 func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text string) (_ *ParseTextView, err error) {
@@ -118,6 +125,7 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 
 	var categoryResult CategoryClassificationResult
 	var detailsResult TransactionDetailsResult
+	var debtResult *DebtDetailsResult
 	var wg sync.WaitGroup
 	var errChan = make(chan error, 2)
 
@@ -213,6 +221,19 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 		return nil, <-errChan
 	}
 
+	if categoryResult.CategoryID != nil && *categoryResult.CategoryID == entities.LoanAndDebtsCategory.Int() {
+		prompt := NewDebtCounterpartyPrompt(text, user.LanguageCode.String(), user.Timezone, time.Now().UTC())
+		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, DebtCounterpartySystemMessage, prompt)
+		if err != nil {
+			p.logger.ErrorContext(ctx, "failed to get debt counterparty", err)
+		}
+
+		resp = utils.CleanMarkdownJSON(resp)
+		if err := json.Unmarshal([]byte(resp), &debtResult); err != nil {
+			p.logger.ErrorContext(ctx, "failed to parse debt counterparty", err)
+		}
+	}
+
 	// Merge results
 	var result = &ParseTextView{
 		Type:          detailsResult.Type,
@@ -239,6 +260,10 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 	} else {
 		result.Amount = detailsResult.Amount
 		result.Currency = user.CurrencyCode.String()
+	}
+
+	if debtResult != nil {
+		result.DebtDetails = debtResult
 	}
 
 	return result, nil
