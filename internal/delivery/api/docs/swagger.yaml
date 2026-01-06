@@ -82,6 +82,13 @@ definitions:
       name:
         type: string
     type: object
+  models.CreateDebtRequest:
+    properties:
+      remind_at:
+        type: string
+      transaction_id:
+        type: string
+    type: object
   models.CreateSubcategoryRequest:
     properties:
       category_id:
@@ -119,43 +126,6 @@ definitions:
     - account_id
     - amount
     - type
-    type: object
-  models.CreateTransactionResponse:
-    properties:
-      account_id:
-        type: string
-      amount:
-        type: number
-      category_id:
-        type: integer
-      created_at:
-        type: string
-      currency_code:
-        type: string
-      debt:
-        $ref: '#/definitions/models.Debt'
-      fx_rate:
-        type: number
-      id:
-        type: string
-      note:
-        type: string
-      original_amount:
-        type: number
-      original_currency_code:
-        type: string
-      performed_at:
-        type: string
-      rejected_at:
-        type: string
-      status:
-        type: string
-      subcategory_id:
-        type: integer
-      type:
-        type: string
-      user_id:
-        type: string
     type: object
   models.Debt:
     properties:
@@ -1020,6 +990,36 @@ paths:
       summary: Lists debts with pagination
       tags:
       - Debts
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateDebtRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Debt'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Creates a debt
+      tags:
+      - Debts
   /debts/{id}:
     get:
       parameters:
@@ -1706,7 +1706,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.CreateTransactionResponse'
+            $ref: '#/definitions/models.Transaction'
         "400":
           description: Bad Request
           schema:

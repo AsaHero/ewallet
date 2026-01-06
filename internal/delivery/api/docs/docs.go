@@ -426,6 +426,54 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Debts"
+                ],
+                "summary": "Creates a debt",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateDebtRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Debt"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
             }
         },
         "/debts/{id}": {
@@ -1503,7 +1551,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.CreateTransactionResponse"
+                            "$ref": "#/definitions/models.Transaction"
                         }
                     },
                     "400": {
@@ -1863,6 +1911,17 @@ const docTemplate = `{
                 }
             }
         },
+        "models.CreateDebtRequest": {
+            "type": "object",
+            "properties": {
+                "remind_at": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.CreateSubcategoryRequest": {
             "type": "object",
             "properties": {
@@ -1916,62 +1975,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.CreateTransactionResponse": {
-            "type": "object",
-            "properties": {
-                "account_id": {
-                    "type": "string"
-                },
-                "amount": {
-                    "type": "number"
-                },
-                "category_id": {
-                    "type": "integer"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "currency_code": {
-                    "type": "string"
-                },
-                "debt": {
-                    "$ref": "#/definitions/models.Debt"
-                },
-                "fx_rate": {
-                    "type": "number"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "note": {
-                    "type": "string"
-                },
-                "original_amount": {
-                    "type": "number"
-                },
-                "original_currency_code": {
-                    "type": "string"
-                },
-                "performed_at": {
-                    "type": "string"
-                },
-                "rejected_at": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "subcategory_id": {
-                    "type": "integer"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "user_id": {
                     "type": "string"
                 }
             }
