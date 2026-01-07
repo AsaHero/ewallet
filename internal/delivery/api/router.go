@@ -95,6 +95,7 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 
 			// Parsers routes
 			protected.POST("/parse/text", h.ParseText)
+			protected.POST("/parse/debt/text", h.ParseDebtText)
 			protected.POST("/parse/voice", h.ParseVoice)
 			protected.POST("/parse/image", h.ParseImage)
 

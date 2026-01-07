@@ -12,6 +12,7 @@ type Command struct {
 	*parseTextUsecase
 	*parseAudioUsecase
 	*parseImageUsecase
+	*parseTextDebtUsecase
 }
 
 type Module struct {
@@ -27,12 +28,14 @@ func NewModule(
 	categoriesRepo entities.CategoryRepository,
 	subcategoriesRepo entities.SubcategoryRepository,
 	fxRatesProvider ports.FXRatesProvider,
+	transactionsRepo entities.TransactionRepository,
 ) *Module {
 	return &Module{
 		Command: Command{
 			parseTextUsecase:  NewParseTextUsecase(2*time.Minute, logger, llmClient, usersRepo, accountsRepo, categoriesRepo, subcategoriesRepo, fxRatesProvider),
 			parseAudioUsecase: NewParseAudioUsecase(2*time.Minute, logger, llmClient, usersRepo, accountsRepo, categoriesRepo, subcategoriesRepo, fxRatesProvider),
 			parseImageUsecase: NewParseImageUsecase(2*time.Minute, logger, llmClient, ocrProvider, usersRepo, accountsRepo, categoriesRepo, subcategoriesRepo, fxRatesProvider),
+			parseTextDebtUsecase: NewParseTextDebtUsecase(2*time.Minute, logger, llmClient, usersRepo, transactionsRepo),
 		},
 	}
 }

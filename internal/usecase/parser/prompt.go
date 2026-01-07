@@ -300,8 +300,8 @@ Now clean and rewrite this receipt:
 `, ocr_text)
 }
 
-const DebtCounterpartySystemMessage = `
-You are a deterministic debt counterparty extractor for a personal finance app.
+const DebtDetailsSystemMessage = `
+You are a deterministic debt extractor for a personal finance app.
 
 TASK
 Given a short text about borrowing/lending, extract:
@@ -343,7 +343,7 @@ RULES
 - 0..1. Low if name is inferred.
 `
 
-func NewDebtCounterpartyPrompt(text, lang, timezone string, nowUTC time.Time) string {
+func NewDebtDetailsPrompt(text, lang, timezone string, nowUTC time.Time) string {
 	return fmt.Sprintf(`
 USER CONTEXT:
 - Language: %s

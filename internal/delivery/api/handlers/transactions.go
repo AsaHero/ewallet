@@ -145,8 +145,6 @@ func (h *Handlers) GetTransaction(c *gin.Context) {
 		ID:                   trn.ID.String(),
 		UserID:               trn.UserID.String(),
 		AccountID:            trn.AccountID.String(),
-		CategoryID:           pointer.IntOrNil(trn.Category.ID.Int()),
-		SubcategoryID:        pointer.IntOrNil(trn.Subcategory.ID),
 		Type:                 trn.Type.String(),
 		Status:               trn.Status.String(),
 		Amount:               trn.AmountMajor(),

@@ -672,6 +672,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/parse/debt": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Parse debt text",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Parse"
+                ],
+                "summary": "Parse debt text",
+                "parameters": [
+                    {
+                        "description": "Parse debt transaction request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ParseDebtRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/parser.ParseTextDebtView"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apierr.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/parse/image": {
             "post": {
                 "security": [
@@ -2073,6 +2124,17 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ParseDebtRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.ParseImageRequest": {
             "type": "object",
             "required": [
@@ -2395,6 +2457,32 @@ const docTemplate = `{
                 },
                 "subcategory_id": {
                     "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "parser.ParseTextDebtView": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "counterparty_name": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
                 },
                 "type": {
                     "type": "string"

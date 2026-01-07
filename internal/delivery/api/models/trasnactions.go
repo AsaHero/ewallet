@@ -27,6 +27,11 @@ type ParseTextRequest struct {
 	Content string `json:"content" binding:"required"`
 }
 
+type ParseDebtRequest struct {
+	TransactionID string `json:"transaction_id"`
+	Content       string `json:"content"`
+}
+
 type ParseAudioRequest struct {
 	FileURL string `json:"file_url" binding:"required"`
 }
