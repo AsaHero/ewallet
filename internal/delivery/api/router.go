@@ -71,6 +71,8 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 		DebtsUsecase:        opts.DebtsUsecase,
 		CategoriesUsecase:   opts.CategoriesUsecase,
 		ParserUsecase:       opts.ParserUsecase,
+		NotificationUsecase: opts.NotificationUsecase,
+		AnonsUsecase:        opts.AnonsUsecase,
 	}
 
 	// API routes
