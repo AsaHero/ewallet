@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/AsaHero/e-wallet/internal/entities"
@@ -92,7 +93,7 @@ func (c *CreateDebtUsecase) CreateDebt(ctx context.Context, cmd *CreateDebtComma
 		return nil, err
 	}
 
-	if err := debt.SetAmountMinor(transaction.Amount, transaction.CurrencyCode); err != nil {
+	if err := debt.SetAmountMajor(math.Abs(transaction.AmountMajor()), transaction.CurrencyCode); err != nil {
 		c.logger.ErrorContext(ctx, "failed to set amount minor", err)
 		return nil, err
 	}
