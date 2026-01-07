@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/AsaHero/e-wallet/internal/delivery/api/apierr"
@@ -39,6 +40,48 @@ func (h *Handlers) ParseText(c *gin.Context) {
 
 	var response *parser.ParseTextView
 	response, err := h.ParserUsecase.Command.ParseText(ctx, userID, req.Content)
+	if err != nil {
+		apierr.Handle(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// ParseDebtText godoc
+// @Summary Parse debt text
+// @Description Parse debt text
+// @Tags Parse
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body models.ParseDebtRequest true "Parse debt transaction request"
+// @Success      200 {object} parser.ParseTextDebtView
+// @Failure      400 {object} apierr.Response
+// @Failure      401 {object} apierr.Response
+// @Router       /parse/debt [post]
+func (h *Handlers) ParseDebtText(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		apierr.Unauthorized(c, "user context is missing")
+		return
+	}
+
+	var req models.ParseDebtRequest
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		apierr.BadRequest(c, "invalid request payload", err.Error())
+		return
+	}
+
+	if err := h.Validator.Validate(req); err != nil {
+		apierr.BadRequest(c, "invalid request payload", err.Error())
+		return
+	}
+
+	var response *parser.ParseTextDebtView
+	response, err := h.ParserUsecase.Command.ParseTextDebt(ctx, userID, req.TransactionID, req.Content)
 	if err != nil {
 		apierr.Handle(c, err)
 		return

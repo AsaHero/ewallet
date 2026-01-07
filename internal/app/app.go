@@ -141,7 +141,7 @@ func (a *App) Run() error {
 	transactionsUsecase := transactions.NewModule(a.config.Context.Timeout, a.logger, txManager, usersRepo, accountsRepo, accountsDomainService, transactionsRepo, categoriesDict, subcategoriesDict, debtsRepo)
 	debtsUsecase := debts.NewModule(a.config.Context.Timeout, a.logger, txManager, debtsRepo, transactionsRepo)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict, subcategoriesDict, usersRepo)
-	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider, usersRepo, accountsRepo, categoriesDict, subcategoriesDict, currencyApiClient)
+	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider, usersRepo, accountsRepo, categoriesDict, subcategoriesDict, currencyApiClient, transactionsRepo)
 	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, debtsRepo, a.taskQueue, telegramBotService)
 
 	// init handlers

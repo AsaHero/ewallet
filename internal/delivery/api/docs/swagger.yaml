@@ -189,6 +189,13 @@ definitions:
     required:
     - file_url
     type: object
+  models.ParseDebtRequest:
+    properties:
+      content:
+        type: string
+      transaction_id:
+        type: string
+    type: object
   models.ParseImageRequest:
     properties:
       image_url:
@@ -387,6 +394,23 @@ definitions:
         type: string
       subcategory_id:
         type: integer
+      type:
+        type: string
+    type: object
+  parser.ParseTextDebtView:
+    properties:
+      amount:
+        type: number
+      confidence:
+        type: number
+      counterparty_name:
+        type: string
+      currency:
+        type: string
+      due_date:
+        type: string
+      note:
+        type: string
       type:
         type: string
     type: object
@@ -1155,6 +1179,38 @@ paths:
       summary: Marks a debt as paid
       tags:
       - Debts
+  /parse/debt:
+    post:
+      consumes:
+      - application/json
+      description: Parse debt text
+      parameters:
+      - description: Parse debt transaction request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ParseDebtRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/parser.ParseTextDebtView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Parse debt text
+      tags:
+      - Parse
   /parse/image:
     post:
       consumes:
