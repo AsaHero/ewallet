@@ -3,8 +3,10 @@ package handlers
 import (
 	"github.com/AsaHero/e-wallet/internal/delivery/api/validation"
 	"github.com/AsaHero/e-wallet/internal/usecase/accounts"
+	"github.com/AsaHero/e-wallet/internal/usecase/anons"
 	"github.com/AsaHero/e-wallet/internal/usecase/categories"
 	"github.com/AsaHero/e-wallet/internal/usecase/debts"
+	"github.com/AsaHero/e-wallet/internal/usecase/notifications"
 	"github.com/AsaHero/e-wallet/internal/usecase/parser"
 	"github.com/AsaHero/e-wallet/internal/usecase/transactions"
 	"github.com/AsaHero/e-wallet/internal/usecase/users"
@@ -22,4 +24,6 @@ type Handlers struct {
 	DebtsUsecase        *debts.Module
 	CategoriesUsecase   *categories.Module
 	ParserUsecase       *parser.Module
+	NotificationUsecase *notifications.Module
+	AnonsUsecase        *anons.Module
 }

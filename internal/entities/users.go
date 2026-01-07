@@ -59,4 +59,5 @@ type UserRepository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (*User, error)
 	FindByTGUserID(ctx context.Context, tgUserID int64) (*User, error)
 	FindAll(ctx context.Context) ([]*User, error)
+	FindByFilter(ctx context.Context, userIDs []string, languageCodes []string) ([]*User, error)
 }

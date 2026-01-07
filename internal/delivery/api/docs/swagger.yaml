@@ -25,6 +25,33 @@ definitions:
       user_id:
         type: string
     type: object
+  models.AnonBroadcastFilters:
+    properties:
+      language_codes:
+        items:
+          type: string
+        type: array
+      user_ids:
+        items:
+          type: string
+        type: array
+    type: object
+  models.AnonBroadcastResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      photo_file_id:
+        type: string
+      reply_markup:
+        additionalProperties: {}
+        type: object
+      video_file_id:
+        type: string
+    type: object
   models.AuthRequest:
     properties:
       currency_code:
@@ -74,6 +101,20 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  models.CreateAnonBroadcastRequest:
+    properties:
+      language:
+        type: string
+      message:
+        type: string
+      photo_file_id:
+        type: string
+      reply_markup:
+        additionalProperties: {}
+        type: object
+      video_file_id:
+        type: string
     type: object
   models.CreateCategoryRequest:
     properties:
@@ -231,6 +272,11 @@ definitions:
         type: string
       user_id:
         type: string
+    type: object
+  models.SuccessResponse:
+    properties:
+      success:
+        type: boolean
     type: object
   models.Transaction:
     properties:
@@ -888,6 +934,100 @@ paths:
       summary: Updates account information
       tags:
       - Accounts
+  /anons:
+    get:
+      description: Returns a list of all anonymous broadcasts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AnonBroadcastResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: List anonymous broadcasts
+      tags:
+      - Anons
+    post:
+      consumes:
+      - application/json
+      description: Creates a broadcast task to send anonymous messages to Telegram
+        users with optional filters
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateAnonBroadcastRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AnonBroadcastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Creates an anonymous broadcast
+      tags:
+      - Anons
+  /anons/{id}/broadcast:
+    post:
+      consumes:
+      - application/json
+      description: Triggers sending of an existing broadcast to users based on filters
+      parameters:
+      - description: Anon ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: filters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AnonBroadcastFilters'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierr.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierr.Response'
+      security:
+      - BearerAuth: []
+      summary: Triggers an anonymous broadcast
+      tags:
+      - Anons
   /auth/telegram:
     post:
       consumes:

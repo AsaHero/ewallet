@@ -17,6 +17,7 @@ import (
 	"github.com/AsaHero/e-wallet/internal/infrastructure/repository"
 	"github.com/AsaHero/e-wallet/internal/infrastructure/telegram_bot_service"
 	"github.com/AsaHero/e-wallet/internal/usecase/accounts"
+	"github.com/AsaHero/e-wallet/internal/usecase/anons"
 	"github.com/AsaHero/e-wallet/internal/usecase/categories"
 	"github.com/AsaHero/e-wallet/internal/usecase/debts"
 	"github.com/AsaHero/e-wallet/internal/usecase/notifications"
@@ -131,6 +132,7 @@ func (a *App) Run() error {
 	balanceLogRepo := repository.NewAccountBalanceLogRepo(a.db)
 	transactionsRepo := repository.NewTransactionsRepo(a.db, categoriesDict, subcategoriesDict)
 	debtsRepo := repository.NewDebtsRepo(a.db)
+	anonBroadcastsRepo := repository.NewAnonsRepo(a.db)
 
 	// domain services
 	accountsDomainService := entities.NewAccountsService(accountsRepo, balanceLogRepo)
@@ -142,7 +144,8 @@ func (a *App) Run() error {
 	debtsUsecase := debts.NewModule(a.config.Context.Timeout, a.logger, txManager, debtsRepo, transactionsRepo)
 	categoriesUsecase := categories.NewModule(a.config.Context.Timeout, a.logger, categoriesDict, subcategoriesDict, usersRepo)
 	parserUsecase := parser.NewModule(a.logger, openaiProvider, ocrProvider, usersRepo, accountsRepo, categoriesDict, subcategoriesDict, currencyApiClient, transactionsRepo)
-	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, debtsRepo, a.taskQueue, telegramBotService)
+	notificationsUsecase := notifications.NewModule(a.logger, transactionsRepo, usersRepo, debtsRepo, anonBroadcastsRepo, a.taskQueue, telegramBotService)
+	anonsUsecase := anons.NewModule(a.config.Context.Timeout, a.logger, usersRepo, anonBroadcastsRepo, a.taskQueue, telegramBotService)
 
 	// init handlers
 	opts := &delivery.Options{
@@ -156,6 +159,7 @@ func (a *App) Run() error {
 		CategoriesUsecase:   categoriesUsecase,
 		ParserUsecase:       parserUsecase,
 		NotificationUsecase: notificationsUsecase,
+		AnonsUsecase:        anonsUsecase,
 	}
 
 	mux := worker.NewRouter(opts)

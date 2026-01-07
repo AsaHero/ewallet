@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS anons (
+	id UUID,
+	language_code VARCHAR(2) NOT NULL,
+	video_file_id VARCHAR(255),
+	photo_file_id VARCHAR(255),
+	message TEXT,
+    reply_markup JSONB,
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+);

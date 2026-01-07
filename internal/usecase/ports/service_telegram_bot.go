@@ -20,6 +20,8 @@ type ReplyKeyboardRemove struct {
 
 type SendMessageRequest struct {
 	UserID      int64
+	VideoID     string
+	PhotoID     string
 	Text        string
 	ParseMode   string
 	ReplyMarkup any

@@ -21,6 +21,7 @@ func NewModule(
 	transactionRepo entities.TransactionRepository,
 	userRepo entities.UserRepository,
 	debtsRepo entities.DebtRepository,
+	anonRepo entities.AnonRepository,
 	taskQueue *asynq.Client,
 	telegramBotService ports.TelegramBotService,
 ) *Module {

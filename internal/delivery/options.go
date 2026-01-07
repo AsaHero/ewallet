@@ -3,6 +3,7 @@ package delivery
 import (
 	"github.com/AsaHero/e-wallet/internal/delivery/api/validation"
 	"github.com/AsaHero/e-wallet/internal/usecase/accounts"
+	"github.com/AsaHero/e-wallet/internal/usecase/anons"
 	"github.com/AsaHero/e-wallet/internal/usecase/categories"
 	"github.com/AsaHero/e-wallet/internal/usecase/debts"
 	"github.com/AsaHero/e-wallet/internal/usecase/notifications"
@@ -24,4 +25,5 @@ type Options struct {
 	CategoriesUsecase   *categories.Module
 	ParserUsecase       *parser.Module
 	NotificationUsecase *notifications.Module
+	AnonsUsecase        *anons.Module
 }

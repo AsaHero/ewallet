@@ -104,6 +104,49 @@ func (r *usersRepo) FindAll(ctx context.Context) ([]*entities.User, error) {
 	return users, nil
 }
 
+func (r *usersRepo) FindByFilter(ctx context.Context, userIDs []string, languageCodes []string) ([]*entities.User, error) {
+	db := postgres.FromContext(ctx, r.db)
+
+	query := db.NewSelect().Model((*Users)(nil))
+
+	// If no filters provided, return all users
+	if len(userIDs) == 0 && len(languageCodes) == 0 {
+		var models []Users
+		err := query.Scan(ctx, &models)
+		if err != nil {
+			return nil, postgres.Error(err, models)
+		}
+
+		users := make([]*entities.User, len(models))
+		for i, model := range models {
+			users[i] = r.ToEntity(&model)
+		}
+		return users, nil
+	}
+
+	// Apply filters
+	if len(userIDs) > 0 {
+		query = query.Where("id IN (?)", bun.In(userIDs))
+	}
+
+	if len(languageCodes) > 0 {
+		query = query.Where("language_code IN (?)", bun.In(languageCodes))
+	}
+
+	var models []Users
+	err := query.Scan(ctx, &models)
+	if err != nil {
+		return nil, postgres.Error(err, models)
+	}
+
+	users := make([]*entities.User, len(models))
+	for i, model := range models {
+		users[i] = r.ToEntity(&model)
+	}
+
+	return users, nil
+}
+
 func (r *usersRepo) ToModel(e *entities.User) *Users {
 	if e == nil {
 		return nil
