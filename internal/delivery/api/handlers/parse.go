@@ -59,7 +59,7 @@ func (h *Handlers) ParseText(c *gin.Context) {
 // @Success      200 {object} parser.ParseTextDebtView
 // @Failure      400 {object} apierr.Response
 // @Failure      401 {object} apierr.Response
-// @Router       /parse/debt [post]
+// @Router       /parse/debt/text [post]
 func (h *Handlers) ParseDebtText(c *gin.Context) {
 	ctx := c.Request.Context()
 

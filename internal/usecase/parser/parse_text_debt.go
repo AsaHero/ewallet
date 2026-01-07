@@ -47,7 +47,7 @@ type ParseTextDebtView struct {
 	Currency         string  `json:"currency"`
 	CounterpartyName string  `json:"counterparty_name"`
 	Note             string  `json:"note"`
-	DueDate          string  `json:"due_date"`
+	DueAt            string  `json:"due_at"`
 	Confidence       float64 `json:"confidence"`
 }
 
@@ -117,7 +117,7 @@ func (p *parseTextDebtUsecase) ParseTextDebt(ctx context.Context, userID string,
 		Currency:         transaction.CurrencyCode.String(),
 		CounterpartyName: detailsResult.CounterpartyName,
 		Note:             transaction.RowText,
-		DueDate:          detailsResult.DueDate,
+		DueAt:            detailsResult.DueDate,
 		Confidence:       detailsResult.Confidence,
 	}, nil
 }

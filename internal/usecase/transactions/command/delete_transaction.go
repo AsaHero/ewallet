@@ -21,6 +21,7 @@ type DeleteTransactionUsecase struct {
 	accountsRepo     entities.AccountRepository
 	accountsService  *entities.AccountsService
 	transactionsRepo entities.TransactionRepository
+	debtsRepo        entities.DebtRepository
 }
 
 func NewDeleteTransactionUsecase(
@@ -30,6 +31,7 @@ func NewDeleteTransactionUsecase(
 	accountsRepo entities.AccountRepository,
 	accountsService *entities.AccountsService,
 	transactionsRepo entities.TransactionRepository,
+	debtsRepo entities.DebtRepository,
 ) *DeleteTransactionUsecase {
 	return &DeleteTransactionUsecase{
 		contextTimeout:   timeout,
@@ -38,6 +40,7 @@ func NewDeleteTransactionUsecase(
 		accountsRepo:     accountsRepo,
 		accountsService:  accountsService,
 		transactionsRepo: transactionsRepo,
+		debtsRepo:        debtsRepo,
 	}
 }
 
@@ -92,6 +95,19 @@ func (c *DeleteTransactionUsecase) DeleteTransaction(ctx context.Context, cmd *D
 		err = c.accountsService.RevertTransaction(ctx, account, transaction)
 		if err != nil {
 			c.logger.ErrorContext(ctx, "failed to revert transaction", err)
+			return err
+		}
+
+		debt, err := c.debtsRepo.GetByTransactionID(ctx, transactionID)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to get debts", err)
+			return err
+		}
+
+		debt.Cancel()
+		err = c.debtsRepo.Save(ctx, debt)
+		if err != nil {
+			c.logger.ErrorContext(ctx, "failed to update debt", err)
 			return err
 		}
 

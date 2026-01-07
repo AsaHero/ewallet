@@ -65,6 +65,7 @@ func NewModule(
 				accountsRepo,
 				accountsService,
 				transactionsRepo,
+				debtsRepo,
 			),
 			UpdateTransactionUsecase: command.NewUpdateTransactionUsecase(
 				timeout,
