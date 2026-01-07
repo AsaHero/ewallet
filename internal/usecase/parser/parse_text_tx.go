@@ -84,12 +84,6 @@ type CategoryClassificationResult struct {
 	Confidence    float64 `json:"confidence"`
 }
 
-type DebtDetailsResult struct {
-	CounterpartyName string     `json:"counterparty_name"`
-	DueAt            *time.Time `json:"due_at,omitempty"`
-	Confidence       float64    `json:"confidence"`
-}
-
 func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text string) (_ *ParseTextView, err error) {
 	ctx, cancel := context.WithTimeout(ctx, p.contextTimeout)
 	defer cancel()
@@ -125,7 +119,6 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 
 	var categoryResult CategoryClassificationResult
 	var detailsResult TransactionDetailsResult
-	var debtResult *DebtDetailsResult
 	var wg sync.WaitGroup
 	var errChan = make(chan error, 2)
 
@@ -221,19 +214,6 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 		return nil, <-errChan
 	}
 
-	if categoryResult.CategoryID != nil && *categoryResult.CategoryID == entities.LoanAndDebtsCategory.Int() {
-		prompt := NewDebtCounterpartyPrompt(text, user.LanguageCode.String(), user.Timezone, time.Now().UTC())
-		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, DebtCounterpartySystemMessage, prompt)
-		if err != nil {
-			p.logger.ErrorContext(ctx, "failed to get debt counterparty", err)
-		}
-
-		resp = utils.CleanMarkdownJSON(resp)
-		if err := json.Unmarshal([]byte(resp), &debtResult); err != nil {
-			p.logger.ErrorContext(ctx, "failed to parse debt counterparty", err)
-		}
-	}
-
 	// Merge results
 	var result = &ParseTextView{
 		Type:          detailsResult.Type,
@@ -260,10 +240,6 @@ func (p *parseTextUsecase) ParseText(ctx context.Context, userID string, text st
 	} else {
 		result.Amount = detailsResult.Amount
 		result.Currency = user.CurrencyCode.String()
-	}
-
-	if debtResult != nil {
-		result.DebtDetails = debtResult
 	}
 
 	return result, nil

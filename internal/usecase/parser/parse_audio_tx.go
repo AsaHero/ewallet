@@ -148,7 +148,6 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 
 	var categoryResult CategoryClassificationResult
 	var detailsResult TransactionDetailsResult
-	var debtResult *DebtDetailsResult
 	var wg sync.WaitGroup
 	var errChan = make(chan error, 2)
 
@@ -244,19 +243,6 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 		return nil, <-errChan
 	}
 
-	if categoryResult.CategoryID != nil && *categoryResult.CategoryID == entities.LoanAndDebtsCategory.Int() {
-		prompt := NewDebtCounterpartyPrompt(transcriprionText, user.LanguageCode.String(), user.Timezone, time.Now().UTC())
-		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, DebtCounterpartySystemMessage, prompt)
-		if err != nil {
-			p.logger.ErrorContext(ctx, "failed to get debt counterparty", err)
-		}
-
-		resp = utils.CleanMarkdownJSON(resp)
-		if err := json.Unmarshal([]byte(resp), &debtResult); err != nil {
-			p.logger.ErrorContext(ctx, "failed to parse debt counterparty", err)
-		}
-	}
-
 	// Merge results
 	var result = &ParseAudioView{
 		Type:          detailsResult.Type,
@@ -283,10 +269,6 @@ func (p *parseAudioUsecase) ParseAudio(ctx context.Context, userID string, fileU
 	} else {
 		result.Amount = detailsResult.Amount
 		result.Currency = user.CurrencyCode.String()
-	}
-
-	if debtResult != nil {
-		result.DebtDetails = debtResult
 	}
 
 	return result, nil

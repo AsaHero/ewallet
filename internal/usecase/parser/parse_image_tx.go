@@ -120,7 +120,6 @@ func (p *parseImageUsecase) ParseImage(ctx context.Context, userID string, image
 
 	var categoryResult CategoryClassificationResult
 	var detailsResult TransactionDetailsResult
-	var debtResult *DebtDetailsResult
 	var wg sync.WaitGroup
 	var errChan = make(chan error, 2)
 
@@ -216,19 +215,6 @@ func (p *parseImageUsecase) ParseImage(ctx context.Context, userID string, image
 		return nil, <-errChan
 	}
 
-	if categoryResult.CategoryID != nil && *categoryResult.CategoryID == entities.LoanAndDebtsCategory.Int() {
-		prompt := NewDebtCounterpartyPrompt(humanreadableText, user.LanguageCode.String(), user.Timezone, time.Now().UTC())
-		resp, err := p.llmClient.ChatCompletion(ctx, openai.GPT4o, DebtCounterpartySystemMessage, prompt)
-		if err != nil {
-			p.logger.ErrorContext(ctx, "failed to get debt counterparty", err)
-		}
-
-		resp = utils.CleanMarkdownJSON(resp)
-		if err := json.Unmarshal([]byte(resp), &debtResult); err != nil {
-			p.logger.ErrorContext(ctx, "failed to parse debt counterparty", err)
-		}
-	}
-
 	// Merge results
 	var result = &ParseImageView{
 		Type:          detailsResult.Type,
@@ -255,10 +241,6 @@ func (p *parseImageUsecase) ParseImage(ctx context.Context, userID string, image
 	} else {
 		result.Amount = detailsResult.Amount
 		result.Currency = user.CurrencyCode.String()
-	}
-
-	if debtResult != nil {
-		result.DebtDetails = debtResult
 	}
 
 	return result, nil

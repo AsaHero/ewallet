@@ -81,11 +81,11 @@ func buildDebtInlineKeyboard(lang entities.Language, debtID string) ports.Inline
 	return ports.InlineKeyboardMarkup{
 		InlineKeyboard: [][]map[string]any{
 			{
-				{`text`: labels.Paid, `callback_data`: fmt.Sprintf(`debt:paid:%s`, debtID)},
-				{`text`: labels.RemindLater, `callback_data`: fmt.Sprintf(`debt:remind_later:%s`, debtID)},
+				{`text`: labels.Paid, `callback_data`: fmt.Sprintf(`debt_paid:%s`, debtID)},
+				{`text`: labels.RemindLater, `callback_data`: fmt.Sprintf(`debt_remind_later:%s`, debtID)},
 			},
 			{
-				{`text`: labels.Cancel, `callback_data`: fmt.Sprintf(`debt:cancel:%s`, debtID)},
+				{`text`: labels.Cancel, `callback_data`: fmt.Sprintf(`debt_cancel:%s`, debtID)},
 			},
 		},
 	}
