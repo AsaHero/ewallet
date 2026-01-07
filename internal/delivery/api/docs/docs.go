@@ -672,7 +672,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/parse/debt": {
+        "/parse/debt/text": {
             "post": {
                 "security": [
                     {
@@ -2370,7 +2370,7 @@ const docTemplate = `{
                 "counterparty_name": {
                     "type": "string"
                 },
-                "due_at": {
+                "due_date": {
                     "type": "string"
                 }
             }
@@ -2478,7 +2478,7 @@ const docTemplate = `{
                 "currency": {
                     "type": "string"
                 },
-                "due_date": {
+                "due_at": {
                     "type": "string"
                 },
                 "note": {
