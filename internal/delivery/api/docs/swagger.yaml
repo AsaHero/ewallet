@@ -934,7 +934,7 @@ paths:
       summary: Updates account information
       tags:
       - Accounts
-  /anons:
+  /admin/anons:
     get:
       description: Returns a list of all anonymous broadcasts
       produces:
@@ -951,10 +951,10 @@ paths:
           schema:
             $ref: '#/definitions/apierr.Response'
       security:
-      - BearerAuth: []
+      - BasicAuth: []
       summary: List anonymous broadcasts
       tags:
-      - Anons
+      - Admin
     post:
       consumes:
       - application/json
@@ -983,11 +983,11 @@ paths:
           schema:
             $ref: '#/definitions/apierr.Response'
       security:
-      - BearerAuth: []
+      - BasicAuth: []
       summary: Creates an anonymous broadcast
       tags:
-      - Anons
-  /anons/{id}/broadcast:
+      - Admin
+  /admin/anons/{id}/broadcast:
     post:
       consumes:
       - application/json
@@ -1024,10 +1024,10 @@ paths:
           schema:
             $ref: '#/definitions/apierr.Response'
       security:
-      - BearerAuth: []
+      - BasicAuth: []
       summary: Triggers an anonymous broadcast
       tags:
-      - Anons
+      - Admin
   /auth/telegram:
     post:
       consumes:

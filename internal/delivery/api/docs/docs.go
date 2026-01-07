@@ -188,11 +188,11 @@ const docTemplate = `{
                 }
             }
         },
-        "/anons": {
+        "/admin/anons": {
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BasicAuth": []
                     }
                 ],
                 "description": "Returns a list of all anonymous broadcasts",
@@ -200,7 +200,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Anons"
+                    "Admin"
                 ],
                 "summary": "List anonymous broadcasts",
                 "responses": {
@@ -224,7 +224,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BasicAuth": []
                     }
                 ],
                 "description": "Creates a broadcast task to send anonymous messages to Telegram users with optional filters",
@@ -235,7 +235,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Anons"
+                    "Admin"
                 ],
                 "summary": "Creates an anonymous broadcast",
                 "parameters": [
@@ -271,11 +271,11 @@ const docTemplate = `{
                 }
             }
         },
-        "/anons/{id}/broadcast": {
+        "/admin/anons/{id}/broadcast": {
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BasicAuth": []
                     }
                 ],
                 "description": "Triggers sending of an existing broadcast to users based on filters",
@@ -286,7 +286,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Anons"
+                    "Admin"
                 ],
                 "summary": "Triggers an anonymous broadcast",
                 "parameters": [

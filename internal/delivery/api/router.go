@@ -129,11 +129,15 @@ func NewRouter(opts *delivery.Options) *gin.Engine {
 			protected.PUT("/debts/:id", h.UpdateDebt)
 			protected.POST("/debts/:id/pay", h.PayDebt)
 			protected.POST("/debts/:id/cancel", h.CancelDebt)
+		}
 
+		admin := api.Group("/admin")
+		admin.Use(middleware.AdminAuthorizer(h.Config.Admin.Username, h.Config.Admin.Password))
+		{
 			// Anon Broadcast routes
-			protected.GET("/anons", h.GetAnons)
-			protected.POST("/anons", h.CreateAnons)
-			protected.POST("/anons/:id/broadcast", h.BroadcastAnons)
+			admin.GET("/anons", h.GetAnons)
+			admin.POST("/anons", h.CreateAnons)
+			admin.POST("/anons/:id/broadcast", h.BroadcastAnons)
 		}
 	}
 

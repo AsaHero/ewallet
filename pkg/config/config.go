@@ -21,6 +21,11 @@ type Config struct {
 		IdleTimeout  time.Duration
 	}
 
+	Admin struct {
+		Username string
+		Password string
+	}
+
 	Context struct {
 		Timeout time.Duration
 	}
@@ -106,6 +111,10 @@ func New() (*Config, error) {
 	if c.Server.IdleTimeout, err = getEnvDuration("SERVER_IDLE_TIMEOUT", "120s"); err != nil {
 		return nil, fmt.Errorf("SERVER_IDLE_TIMEOUT: %w", err)
 	}
+
+	// Admin
+	c.Admin.Username = getEnv("ADMIN_USERNAME", "")
+	c.Admin.Password = getEnv("ADMIN_PASSWORD", "")
 
 	// Context
 	if c.Context.Timeout, err = getEnvDuration("CONTEXT_TIMEOUT", "30s"); err != nil {

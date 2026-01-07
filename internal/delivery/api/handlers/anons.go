@@ -14,15 +14,15 @@ import (
 // CreateAnonBroadcast godoc
 // @Summary      Creates an anonymous broadcast
 // @Description  Creates a broadcast task to send anonymous messages to Telegram users with optional filters
-// @Tags         Anons
+// @Tags         Admin
 // @Accept       json
 // @Produce      json
-// @Security     BearerAuth
+// @Security     BasicAuth
 // @Param        request body models.CreateAnonBroadcastRequest true "request"
 // @Success      200 {object} models.AnonBroadcastResponse
 // @Failure      400 {object} apierr.Response
 // @Failure      401 {object} apierr.Response
-// @Router       /anons [post]
+// @Router       /admin/anons [post]
 func (h *Handlers) CreateAnons(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -81,17 +81,17 @@ func (h *Handlers) CreateAnons(c *gin.Context) {
 // BroadcastAnons godoc
 // @Summary      Triggers an anonymous broadcast
 // @Description  Triggers sending of an existing broadcast to users based on filters
-// @Tags         Anons
+// @Tags         Admin
 // @Accept       json
 // @Produce      json
-// @Security     BearerAuth
+// @Security     BasicAuth
 // @Param        id path string true "Anon ID"
 // @Param        request body models.AnonBroadcastFilters true "filters"
 // @Success      200 {object} models.SuccessResponse
 // @Failure      400 {object} apierr.Response
 // @Failure      404 {object} apierr.Response
 // @Failure      500 {object} apierr.Response
-// @Router       /anons/{id}/broadcast [post]
+// @Router       /admin/anons/{id}/broadcast [post]
 func (h *Handlers) BroadcastAnons(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
@@ -122,12 +122,12 @@ func (h *Handlers) BroadcastAnons(c *gin.Context) {
 // GetAnons godoc
 // @Summary      List anonymous broadcasts
 // @Description  Returns a list of all anonymous broadcasts
-// @Tags         Anons
+// @Tags         Admin
 // @Produce      json
-// @Security     BearerAuth
+// @Security     BasicAuth
 // @Success      200 {array} models.AnonBroadcastResponse
 // @Failure      500 {object} apierr.Response
-// @Router       /anons [get]
+// @Router       /admin/anons [get]
 func (h *Handlers) GetAnons(c *gin.Context) {
 	ctx := c.Request.Context()
 
