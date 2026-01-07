@@ -10,6 +10,7 @@ import (
 func NewRouter(opts *delivery.Options) *asynq.ServeMux {
 	handler := handlers.Handler{
 		NotificationUsecase: opts.NotificationUsecase,
+		AnonsUsecase:        opts.AnonsUsecase,
 	}
 
 	mux := asynq.NewServeMux()
