@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-type RecordReminderCalculateScheduler struct {
+type RecordReminderScheduler struct {
 	config       *config.Config
 	logger       *logger.Logger
 	db           *bun.DB
@@ -22,10 +22,10 @@ type RecordReminderCalculateScheduler struct {
 	shutdownOTLP func(ctx context.Context) error
 }
 
-func NewRecordReminderCalculateScheduler(cfg *config.Config) (*RecordReminderCalculateScheduler, error) {
+func NewRecordReminderScheduler(cfg *config.Config) (*RecordReminderScheduler, error) {
 	shutdownOTLP := otlp.InitTracer(
 		context.Background(),
-		otlp.WithServiceName("record-reminder-calculate-scheduler"),
+		otlp.WithServiceName("record-reminder-scheduler"),
 		otlp.WithEnvironment(cfg.Environment),
 		otlp.WithExporterType(otlp.ExporterNameToExporterType[cfg.OTEL.Exporter.Type]),
 		otlp.WithEndpoint(cfg.OTEL.Exporter.OTLP.Endpoint),
@@ -34,7 +34,7 @@ func NewRecordReminderCalculateScheduler(cfg *config.Config) (*RecordReminderCal
 		otlp.WithSamplerArg(cfg.OTEL.Traces.SamplerArg),
 	)
 
-	logger, err := logger.NewLogger("record-reminder-calculate-scheduler.log", cfg.LogLevel)
+	logger, err := logger.NewLogger("record-reminder-scheduler.log", cfg.LogLevel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)
 	}
@@ -61,7 +61,7 @@ func NewRecordReminderCalculateScheduler(cfg *config.Config) (*RecordReminderCal
 		},
 	)
 
-	return &RecordReminderCalculateScheduler{
+	return &RecordReminderScheduler{
 		config:       cfg,
 		logger:       logger,
 		db:           db,
@@ -70,10 +70,10 @@ func NewRecordReminderCalculateScheduler(cfg *config.Config) (*RecordReminderCal
 	}, nil
 }
 
-func (a *RecordReminderCalculateScheduler) Run() (err error) {
+func (a *RecordReminderScheduler) Run() (err error) {
 	ctx := context.Background()
 
-	ctx, end := otlp.Start(ctx, otel.Tracer("record-reminder-calculate-scheduler"), "Run")
+	ctx, end := otlp.Start(ctx, otel.Tracer("record-reminder-scheduler"), "Run")
 	defer func() { end(err) }()
 
 	task, err := tasks.NewRecordReminderScheduleTask()
@@ -94,7 +94,7 @@ func (a *RecordReminderCalculateScheduler) Run() (err error) {
 	return a.scheduler.Run()
 }
 
-func (a *RecordReminderCalculateScheduler) Stop() error {
+func (a *RecordReminderScheduler) Stop() error {
 	if a.scheduler != nil {
 		a.scheduler.Shutdown()
 	}

@@ -13,7 +13,7 @@ var JobsCMD = &cobra.Command{
 
 func init() {
 	JobsCMD.AddCommand(
-		recordReminderCalculateSchedulerCMD,
+		recordReminderSchedulerCMD,
 		debtReminderSchedulerCMD,
 	)
 }
