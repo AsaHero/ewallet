@@ -78,6 +78,7 @@ func (r *debtReminderSendUsecase) DebtReminderSend(ctx context.Context, debtID s
 
 	text := debtReminderText(lang, DebtMsgParams{
 		DebtType: debt.Type,
+		Name:     debt.Name,
 		Amount:   debt.AmountMajor(),
 		Currency: debt.CurrencyCode.String(),
 		RemindAt: debt.DueAt,

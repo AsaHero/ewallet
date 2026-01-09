@@ -26,8 +26,10 @@ var recordReminderSchedulerCMD = &cobra.Command{
 			log.Fatalln("app init", err)
 		}
 
+		runNow, _ := cmd.Flags().GetBool("now")
+
 		// run application
-		if err := recordReminderScheduler.Run(); err != nil {
+		if err := recordReminderScheduler.Run(runNow); err != nil {
 			log.Println("record reminder scheduler run", err)
 		}
 
@@ -36,4 +38,8 @@ var recordReminderSchedulerCMD = &cobra.Command{
 		recordReminderScheduler.Stop()
 		log.Println("record reminder scheduler stopped gracefully")
 	},
+}
+
+func init() {
+	recordReminderSchedulerCMD.Flags().Bool("now", false, "Run the record reminder scheduler now")
 }

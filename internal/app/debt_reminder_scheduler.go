@@ -11,6 +11,7 @@ import (
 type DebtReminderScheduler struct {
 	config    *config.Config
 	scheduler *asynq.Scheduler
+	taskQueue *asynq.Client
 }
 
 func NewDebtReminderScheduler(cfg *config.Config) (*DebtReminderScheduler, error) {
@@ -24,17 +25,34 @@ func NewDebtReminderScheduler(cfg *config.Config) (*DebtReminderScheduler, error
 		},
 	)
 
+	taskQueue := asynq.NewClient(
+		asynq.RedisClientOpt{
+			Addr:     cfg.Redis.Host + ":" + cfg.Redis.Port,
+			Password: cfg.Redis.Password,
+		},
+	)
+
 	return &DebtReminderScheduler{
 		config:    cfg,
 		scheduler: scheduler,
+		taskQueue: taskQueue,
 	}, nil
 }
 
-func (a *DebtReminderScheduler) Run() error {
+func (a *DebtReminderScheduler) Run(runNow bool) error {
 	// Check for due debt reminders every 15 minutes
 	task, err := tasks.NewDebtReminderCheckTask()
 	if err != nil {
 		return err
+	}
+
+	if runNow {
+		_, err = a.taskQueue.Enqueue(task, asynq.Queue("high"))
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	_, err = a.scheduler.Register("*/15 * * * *", task, asynq.Queue("high"))

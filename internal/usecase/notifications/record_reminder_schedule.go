@@ -97,7 +97,7 @@ func (r *recordReminderScheduleUsecase) RecordReminderSchedule(ctx context.Conte
 	return nil
 }
 
-func (r *recordReminderScheduleUsecase) enqueueReminder(ctx context.Context, userID, text string, delay time.Duration) error {
+func (r *recordReminderScheduleUsecase) enqueueReminder(_ context.Context, userID, text string, delay time.Duration) error {
 	task, err := tasks.NewRecordReminderSendTask(userID, text)
 	if err != nil {
 		return err
