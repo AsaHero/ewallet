@@ -9,9 +9,9 @@ CREATE TABLE IF NOT EXISTS account_balance_log (
   occurred_at timestamp with time zone NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   PRIMARY KEY (id),
-  CONSTRAINT account_balance_log_account_fk FOREIGN KEY (account_id) REFERENCES accounts(id) ON UPDATE CASCADE ,
-  CONSTRAINT account_balance_log_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE,
-  CONSTRAINT account_balance_log_transaction_fk FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON UPDATE CASCADE
+  CONSTRAINT account_balance_log_account_fk FOREIGN KEY (account_id) REFERENCES accounts(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT account_balance_log_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT account_balance_log_transaction_fk FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS account_balance_log_account_tx_uniq ON account_balance_log(account_id, transaction_id);
