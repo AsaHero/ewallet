@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/AsaHero/e-wallet/internal/entities"
@@ -99,16 +100,18 @@ func (c *DeleteTransactionUsecase) DeleteTransaction(ctx context.Context, cmd *D
 		}
 
 		debt, err := c.debtsRepo.GetByTransactionID(ctx, transactionID)
-		if err != nil {
+		if err != nil && !errors.Is(err, inerr.ErrNotFound{}) {
 			c.logger.ErrorContext(ctx, "failed to get debts", err)
 			return err
 		}
 
-		debt.Cancel()
-		err = c.debtsRepo.Save(ctx, debt)
-		if err != nil {
-			c.logger.ErrorContext(ctx, "failed to update debt", err)
-			return err
+		if debt != nil {
+			debt.Cancel()
+			err = c.debtsRepo.Save(ctx, debt)
+			if err != nil {
+				c.logger.ErrorContext(ctx, "failed to update debt", err)
+				return err
+			}
 		}
 
 		transaction.Rejected(time.Now())
