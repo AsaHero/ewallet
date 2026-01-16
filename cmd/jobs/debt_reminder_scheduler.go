@@ -26,8 +26,10 @@ var debtReminderSchedulerCMD = &cobra.Command{
 			log.Fatalln("app init", err)
 		}
 
+		runNow, _ := cmd.Flags().GetBool("now")
+
 		// run application
-		if err := debtReminderScheduler.Run(); err != nil {
+		if err := debtReminderScheduler.Run(runNow); err != nil {
 			log.Println("debt reminder scheduler run", err)
 		}
 
@@ -36,4 +38,8 @@ var debtReminderSchedulerCMD = &cobra.Command{
 		debtReminderScheduler.Stop()
 		log.Println("debt reminder scheduler stopped gracefully")
 	},
+}
+
+func init() {
+	debtReminderSchedulerCMD.Flags().Bool("now", false, "Run debt reminder scheduler now")
 }

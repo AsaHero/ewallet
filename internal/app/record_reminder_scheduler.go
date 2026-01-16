@@ -19,6 +19,7 @@ type RecordReminderScheduler struct {
 	logger       *logger.Logger
 	db           *bun.DB
 	scheduler    *asynq.Scheduler
+	taskQueue    *asynq.Client
 	shutdownOTLP func(ctx context.Context) error
 }
 
@@ -61,16 +62,24 @@ func NewRecordReminderScheduler(cfg *config.Config) (*RecordReminderScheduler, e
 		},
 	)
 
+	taskQueue := asynq.NewClient(
+		asynq.RedisClientOpt{
+			Addr:     cfg.Redis.Host + ":" + cfg.Redis.Port,
+			Password: cfg.Redis.Password,
+		},
+	)
+
 	return &RecordReminderScheduler{
 		config:       cfg,
 		logger:       logger,
 		db:           db,
 		scheduler:    scheduler,
+		taskQueue:    taskQueue,
 		shutdownOTLP: shutdownOTLP,
 	}, nil
 }
 
-func (a *RecordReminderScheduler) Run() (err error) {
+func (a *RecordReminderScheduler) Run(runNow bool) (err error) {
 	ctx := context.Background()
 
 	ctx, end := otlp.Start(ctx, otel.Tracer("record-reminder-scheduler"), "Run")
@@ -80,6 +89,16 @@ func (a *RecordReminderScheduler) Run() (err error) {
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to create record reminder schedule task", err)
 		return err
+	}
+
+	if runNow {
+		_, err = a.taskQueue.Enqueue(task, asynq.Queue("medium"))
+		if err != nil {
+			a.logger.ErrorContext(ctx, "failed to enqueue record reminder schedule task", err)
+			return err
+		}
+
+		return nil
 	}
 
 	_, err = a.scheduler.Register("0 0 * * 1-5", task, asynq.Queue("medium"))
