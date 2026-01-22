@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/AsaHero/e-wallet/internal/delivery/api/apierr"
@@ -25,8 +27,17 @@ import (
 func (h *Handlers) AuthTelegram(c *gin.Context) {
 	ctx := c.Request.Context()
 
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		apierr.BadRequest(c, "invalid request payload", err.Error())
+		return
+	}
+
+	h.Logger.InfoContext(ctx, "request payload", string(body))
+
 	var req models.AuthRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := json.Unmarshal(body, &req); err != nil {
+		h.Logger.ErrorContext(ctx, "failed to unmarshal request payload", err)
 		apierr.BadRequest(c, "invalid request payload", err.Error())
 		return
 	}
