@@ -95,7 +95,7 @@ func (r *transactionsRepo) GetByFilter(ctx context.Context, filter *entities.Tra
 	query := db.NewSelect().Model(&models).
 		Where("user_id = ?", filter.UserID.String()).
 		Where("status = ?", entities.Completed.String()).
-		Order("created_at desc")
+		Order("performed_at desc")
 
 	if len(filter.Types) > 0 {
 		query = query.Where("type IN (?)", bun.In(filter.Types))
